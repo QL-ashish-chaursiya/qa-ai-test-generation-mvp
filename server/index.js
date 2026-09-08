@@ -120,6 +120,20 @@ function describeTestTypes(testTypes) {
   return testTypes.map((t) => `- ${t}: ${TEST_TYPE_GUIDANCE[t] || t}`).join('\n');
 }
 
+// Shared reliability standards injected into every prompt that generates or edits test
+// code (initial generation, step resolution, intent-mode, and the healer) - these are the
+// concrete, recurring ways generated tests break in practice (dead selectors copied from an
+// accessibility snapshot, dialogs wired up too late, fixed sleeps papering over real waits,
+// and row/position locators that silently target the wrong element once state changes)
+// rather than generic "write good tests" advice.
+const RELIABILITY_STANDARDS = `
+Reliability standards - apply these to every locator and wait in the file, they are the most common reasons generated tests are flaky or wrong:
+1. Strong selectors: verify every locator against the real live DOM before using it. Prefer, in order: a stable test id/data-testid attribute, ARIA role + accessible name (getByRole with { name }), unique visible text, then a tightly scoped CSS selector as a last resort. Never use a bare tag/CSS guess like locator('generic') or other pseudo-role names lifted from an accessibility snapshot - "generic" and similar are snapshot role labels, not real selectors, and will silently match nothing.
+2. No position-only locators for anything whose position can change: avoid nth(0)/nth(1)/first()/last() to pick a row/item unless it is truly the only way to disambiguate AND its position is guaranteed stable. If a list/table row's order or membership can change between when the test is generated and when it runs (e.g. an item moves, gets approved/completed, is removed, or new rows are added above it), identify the target by its OWN distinguishing content at run time - its text, id, or current status/state - never by a hardcoded index or "the first row". Example: for approving a pending item, filter rows by their actual pending/unapproved status (e.g. filter({ hasText: 'Pending' }), or a status-cell/attribute check) so a later run correctly targets whichever row is still pending, not whatever happened to be first during generation.
+3. Dialogs: register page.on('dialog', ...) (or page.once('dialog', ...)) BEFORE the action that triggers it, never after. Playwright auto-dismisses a dialog if no listener is attached the moment it appears, so attaching the handler after the triggering click is a no-op that silently cancels the dialog every run.
+4. No fixed delays: never use page.waitForTimeout(...) or any sleep to wait for content, navigation, or an element to become ready. Rely on Playwright's built-in auto-waiting on actions and expect(...) assertions, and when something extra is needed, wait for the actual condition instead of a duration - locator.waitFor() for an element to appear/detach, page.waitForResponse() for a specific network call, page.waitForURL() for navigation, or page.waitForLoadState('networkidle') only when the page has no long-lived polling/websocket traffic that would keep it from ever going idle.
+`;
+
 function extractTokenUsage(result) {
   const u = result.usage || {};
   return {
@@ -219,6 +233,7 @@ async function generateTestCase({ url, prompt, context, title, testTypes }, onEv
 Target URL: ${url}
 Test intent (plain English): ${prompt}
 ${context ? `\nContext for this test (credentials, session/OTP info, test data - use only what's relevant to this test's intent): ${context}\n` : ''}${typeGuidance ? `\nGenerate this test with the following focus (blend all listed if more than one applies):\n${typeGuidance}\n` : '\nFocus: the normal happy-path flow.\n'}
+${RELIABILITY_STANDARDS}
 Instructions:
 1. Use the mcp__playwright-test__ browser tools to actually navigate to the target URL and interact with the live page. Call mcp__playwright-test__generator_setup_page first, then use browser_* tools to perform each step. Verify real selectors against the live DOM - do not guess them. Pass a short, specific "intent" string with every browser tool call describing that step in plain English (e.g. "Click the Submit button") - this is shown to the user live as progress.
 2. Generate exactly ONE Playwright test (@playwright/test, TypeScript) implementing the scenario described above per the stated focus, with a real, meaningful assertion (expect(...)) that proves the scenario succeeded.
@@ -287,10 +302,10 @@ ${meta.steps.map((s, i) => `${i + 1}. [${s.type}]${s.resolved ? '' : ' [NEEDS IM
 
 Current file contents:
 ${code}
-
+${RELIABILITY_STANDARDS}
 Instructions:
 1. Use the mcp__playwright-test__ browser tools to navigate to ${meta.url} (call mcp__playwright-test__generator_setup_page first) and verify real selectors live against the current page for the [NEEDS IMPLEMENTING] steps only - do not guess. Pass a short, specific "intent" string with every browser tool call describing what you're doing - this is shown to the user live as progress.
-2. Implement ONLY the [NEEDS IMPLEMENTING] steps, inserting/updating them at their correct position in the step order. Leave every other step's existing behavior untouched.
+2. Implement ONLY the [NEEDS IMPLEMENTING] steps, inserting/updating them at their correct position in the step order. Leave every other step's existing behavior untouched. If an existing (already-implemented) step you're leaving untouched uses a position-only locator, a dialog handler registered after its triggering action, or a fixed delay, leave it as-is unless fixing it is necessary to implement a [NEEDS IMPLEMENTING] step - this pass targets only the queued changes.
 3. Write the complete updated file back with the Write tool to exactly this path: ${outPath}
 4. Respond with ONLY the structured JSON result: this test's "title" and its FULL ordered list of "steps" as they now exist in the updated file (including the unchanged ones), each restated as one short plain-English sentence with a "type" of "action" or "assertion".
 5. Do not ask any questions - make reasonable judgment calls, you are running unattended.`;
@@ -600,7 +615,7 @@ Target URL: ${url}
 
 Steps (execute in order, using your own judgment for HOW to satisfy each intent on the actual live page - do not assume a fixed sequence of actions, discover what this specific page actually needs):
 ${manifest.steps.map((s, i) => `${i + 1}. [${s.id}]${s.optional ? ' (optional - skip if not applicable to this page)' : ''} ${s.intent}`).join('\n')}
-
+${RELIABILITY_STANDARDS}
 Instructions:
 1. Use the mcp__playwright-test__ browser tools to navigate to the URL and actually drive the live page. Call mcp__playwright-test__generator_setup_page first.
 2. For each step, inspect the live page state and decide the real action(s) needed to satisfy that step's intent - verify real selectors against the live DOM, do not guess. Different pages may need completely different actions to satisfy the same intent.
@@ -707,6 +722,8 @@ ${currentCode}
 
 Failure output from the last run:
 ${lastFailureOutput}
+${RELIABILITY_STANDARDS}
+When fixing, actively check whether the failure is actually caused by one of the patterns above (a dead/generic selector, a position-only locator that now points at the wrong row because state changed, a dialog handler wired up after its trigger, or a fixed-delay wait that's too short/long) - these are the most common root causes, not just a one-off drifted attribute.
 
 Your workflow:
 1. Use mcp__playwright-test__test_run and mcp__playwright-test__test_debug on this test to reproduce the failure and pause on it.

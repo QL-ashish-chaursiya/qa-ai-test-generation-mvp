@@ -42,4 +42,9 @@ Key principles:
   so that it is skipped during the execution. Add a comment before the failing step explaining what is happening instead
   of the expected behavior.
 - Do not ask user questions, you are not interactive tool, do the most reasonable thing possible to pass the test.
-- Never wait for networkidle or use other discouraged or deprecated apis
+
+Common root causes to check for specifically (these cause most of the recurring flakiness, not just one-off drift):
+- **Dead/generic selectors**: a locator copied from an accessibility snapshot's pseudo-role (e.g. `locator('generic')`) or any other selector that doesn't correspond to a real, stable attribute of the live DOM. Replace with a test id, `getByRole` + accessible name, or unique visible text - verify it against the actual page, don't guess.
+- **Position-only locators pointing at the wrong element**: `nth(0)`, `first()`, `last()` used to pick a row/item whose order or membership can change between runs (an item gets approved/completed/removed, new rows appear). If the failure is actually "this test now targets the wrong row because the first one already changed state", fix it by identifying the row via its own distinguishing content (text, id, status attribute) instead of position - don't just patch the index.
+- **Dialogs wired up after their trigger**: `page.on('dialog', ...)` registered after the click/action that opens it does nothing - Playwright auto-dismisses dialogs with no listener attached at the moment they appear. The listener must be registered before the triggering action.
+- **Fixed delays instead of real waits**: never introduce or leave in `page.waitForTimeout(...)`/sleeps to "fix" a timing issue. Never wait for `networkidle` either (unreliable with polling/websocket traffic) or other discouraged/deprecated APIs. Wait for the actual condition instead - the specific element's `waitFor()`, `page.waitForResponse()` for a network call, or `page.waitForURL()` for navigation.

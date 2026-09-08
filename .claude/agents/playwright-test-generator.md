@@ -26,6 +26,13 @@ application behavior.
     multiple actions.
   - Always use best practices from the log when generating tests.
 
+# Reliability standards
+These are the most common reasons generated tests turn out flaky or wrong - apply them to every locator and wait, not just as general advice:
+- **Strong selectors only**: verify every locator against the real live DOM before using it (via the browser tools, not a guess). Prefer, in order: a stable test id/data-testid, ARIA role + accessible name, unique visible text, then a tightly scoped CSS selector. Never emit a bare tag/CSS guess like `locator('generic')` or other pseudo-role labels lifted from an accessibility snapshot - those are snapshot role names, not real selectors, and will silently match nothing at test time.
+- **No position-only locators for anything whose position can change**: avoid `nth(0)`/`nth(1)`/`first()`/`last()` to pick a row or item unless it's truly the only way to disambiguate and its position is guaranteed stable run-to-run. If a list/table row's order or membership can change (an item gets approved, completed, removed, or new rows are added), identify the target row by its own distinguishing content (its text, id, or current status) so a later run against changed data still targets the right element - not whichever row happened to be first when the test was generated.
+- **Dialogs**: register `page.on('dialog', ...)` (or `.once`) BEFORE the action that triggers it, never after. Playwright auto-dismisses a dialog if no listener is attached the instant it appears, so attaching the handler after the triggering click silently cancels the dialog every run.
+- **No fixed delays**: never use `page.waitForTimeout(...)` or any sleep to wait for content, navigation, or an element to become ready. Rely on Playwright's built-in auto-waiting on actions/assertions, and when something extra is genuinely needed, wait for the real condition - an element's `waitFor()`, `page.waitForResponse()` for a specific network call, `page.waitForURL()` for navigation, or `page.waitForLoadState('networkidle')` only when the page has no long-lived polling/websocket traffic that would keep it from ever going idle.
+
    <example-generation>
    For following plan:
 
