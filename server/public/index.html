@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>QA Test Cases</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; color: #1a1a1a; background: #f6f7f9; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .subtitle { color: #666; margin: 0 0 28px; font-size: 14px; }
+  label { display: block; font-weight: 600; margin-top: 14px; margin-bottom: 4px; font-size: 13px; }
+  input, textarea, select { width: 100%; box-sizing: border-box; padding: 9px 10px; font-size: 14px; border: 1px solid #d0d3d8; border-radius: 6px; font-family: inherit; background: #fff; }
+  textarea { min-height: 64px; resize: vertical; }
+  select[multiple] { min-height: 68px; }
+  button { padding: 9px 16px; font-size: 14px; border: none; border-radius: 6px; background: #0d6efd; color: white; cursor: pointer; font-weight: 600; }
+  button.secondary { background: #f1f3f5; color: #1a1a1a; }
+  button.danger { background: #fff0f0; color: #c0392b; }
+  button.text-btn { background: transparent; color: #0d6efd; padding: 4px 8px; font-weight: 600; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button + button { margin-left: 8px; }
+  .hint { font-size: 12px; color: #888; margin-top: 4px; }
+  .error-text { color: #c0392b; font-size: 13px; margin-top: 8px; }
+
+  .panel { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; padding: 20px 22px; margin-bottom: 24px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .panel-header h2 { margin: 0; font-size: 16px; }
+  .new-form-body { margin-top: 4px; }
+  .new-form-body.collapsed { display: none; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row > div { flex: 1; }
+
+  .log-feed { margin-top: 14px; background: #0d1117; color: #9fe3a0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; border-radius: 8px; padding: 12px 14px; max-height: 180px; overflow-y: auto; display: none; }
+  .log-feed.open { display: block; }
+  .log-feed div { padding: 1px 0; opacity: .85; }
+  .log-feed div:last-child { opacity: 1; color: #fff; }
+  .log-feed div.log-error { color: #ff8a80; }
+
+  .empty-state { text-align: center; color: #888; padding: 40px 0; font-size: 14px; }
+
+  .card { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; padding: 20px 22px; margin-bottom: 18px; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .collapse-btn { flex-shrink: 0; background: transparent; border: none; color: #888; cursor: pointer; padding: 2px 6px; font-size: 14px; line-height: 1; transition: transform .15s ease; }
+  .collapse-btn:hover { color: #0d6efd; }
+  .collapse-btn.collapsed { transform: rotate(-90deg); }
+  .steps-list.collapsed { display: none; }
+  .badge-row { margin-bottom: 6px; }
+  .type-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-right: 4px; text-transform: uppercase; }
+  .type-happy-path { background: #d1e7dd; color: #0f5132; }
+  .type-edge-case { background: #fff3cd; color: #664d03; }
+  .type-security { background: #f8d7da; color: #842029; }
+  .card-meta { font-size: 12px; color: #999; margin-bottom: 10px; }
+  .card-url { font-size: 13px; color: #0d6efd; word-break: break-all; margin-bottom: 4px; }
+  .card-context { font-size: 12.5px; color: #666; background: #f8f9fb; border-radius: 6px; padding: 6px 10px; margin-bottom: 12px; }
+  .pending-banner { font-size: 12.5px; color: #7a5c00; background: #fff8e6; border: 1px solid #ffe6a3; border-radius: 6px; padding: 6px 10px; margin-bottom: 12px; }
+  .pending-badge { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; background: #fff3cd; color: #7a5c00; }
+
+  .steps-list { list-style: none; margin: 12px 0; padding: 0; border: 1px solid #eceef1; border-radius: 8px; overflow: hidden; }
+  .step-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13.5px; border-top: 1px solid #eceef1; }
+  .step-row:first-child { border-top: none; }
+  .step-row:nth-child(even) { background: #fafbfc; }
+  .step-num { color: #aaa; font-size: 12px; width: 18px; flex-shrink: 0; }
+  .step-tag { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+  .step-action { background: #cfe2ff; color: #084298; }
+  .step-assertion { background: #d1e7dd; color: #0f5132; }
+  .step-text { flex: 1; }
+  .step-edit-btn { flex-shrink: 0; background: transparent; border: none; color: #999; cursor: pointer; padding: 2px 6px; font-size: 13px; }
+  .step-edit-btn:hover { color: #0d6efd; }
+  .step-row.editing { align-items: flex-start; }
+  .step-edit-input { flex: 1; padding: 6px 8px; font-size: 13px; }
+  .step-type-select { width: auto; flex-shrink: 0; padding: 6px 8px; font-size: 12px; }
+
+  .add-step-row { display: flex; gap: 8px; padding: 10px 12px; background: #f8f9fb; align-items: center; }
+  .add-step-row select { width: auto; flex-shrink: 0; }
+  .add-step-row input { flex: 1; }
+
+  details summary { cursor: pointer; font-size: 13px; color: #555; margin-top: 6px; }
+  pre { background: #0d1117; color: #c9d1d9; padding: 14px; border-radius: 8px; overflow-x: auto; margin-top: 10px; white-space: pre-wrap; font-size: 12.5px; }
+  .card-actions { margin-top: 14px; }
+  .pass { color: #198754; font-weight: 700; }
+  .fail { color: #c0392b; font-weight: 700; }
+  .run-result { margin-top: 10px; font-size: 13px; }
+  a.report-link { display: inline-block; margin-top: 6px; }
+  .recording { margin-top: 12px; }
+  .recording-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .recording-header span { font-size: 12.5px; font-weight: 600; color: #555; }
+  .recording video { width: 100%; max-width: 480px; border-radius: 8px; background: #000; display: block; }
+  .speed-select { width: auto; padding: 4px 8px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>QA Test Cases</h1>
+<p class="subtitle">Test cases you generate here run against a live browser session and stay stored on disk.</p>
+
+<div class="panel">
+  <div class="panel-header" id="newFormToggle">
+    <h2>+ New Test Case</h2>
+    <button class="secondary" type="button" id="newFormToggleBtn">Show</button>
+  </div>
+  <div class="new-form-body collapsed" id="newFormBody">
+    <label for="url">Website URL</label>
+    <input id="url" type="url" placeholder="https://example.com/login" />
+
+    <label for="prompt">What should this test verify? (plain English)</label>
+    <textarea id="prompt" placeholder="Verify that submitting the login form with valid credentials shows the dashboard"></textarea>
+
+    <label for="context">Context (optional) - credentials, session/OTP info, test data</label>
+    <textarea id="context" placeholder="e.g. Log in with test@example.com / password123. If prompted for an OTP, use 000000."></textarea>
+
+    <label for="testTypes">Test type(s)</label>
+    <select id="testTypes" multiple>
+      <option value="happy-path" selected>Happy Path</option>
+      <option value="edge-case">Edge Case</option>
+      <option value="security">Security</option>
+    </select>
+    <div class="hint">Ctrl/Cmd-click to select multiple.</div>
+
+    <div style="margin-top:16px">
+      <button id="generateBtn" type="button">Generate Test Case</button>
+    </div>
+    <div class="log-feed" id="createLog"></div>
+    <div class="error-text" id="createError" style="display:none"></div>
+  </div>
+</div>
+
+<div id="testCases"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- shared: ndjson streaming request ----------
+  async function streamRequest(url, options, onProgress) {
+    const resp = await fetch(url, options);
+    if (!resp.ok || !resp.body) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || `Request failed (${resp.status})`);
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finalItem = null;
+    let finalError = null;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        if (event.type === 'progress') onProgress(event.message, false);
+        else if (event.type === 'done') finalItem = event.item;
+        else if (event.type === 'error') finalError = event;
+      }
+    }
+    if (finalError) {
+      onProgress(finalError.detail ? `${finalError.message}: ${finalError.detail}` : finalError.message, true);
+      throw new Error(finalError.message);
+    }
+    if (!finalItem) throw new Error('Stream ended without a result');
+    return finalItem;
+  }
+
+  function el(tag, opts = {}, children = []) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(opts)) {
+      if (k === 'text') node.textContent = v;
+      else if (k === 'class') node.className = v;
+      else if (k === 'value') node.value = v;
+      else node.setAttribute(k, v);
+    }
+    for (const child of children) node.appendChild(child);
+    return node;
+  }
+
+  const PLAYBACK_SPEEDS = [0.25, 0.5, 1, 1.5, 2];
+
+  // Builds a playback panel for a run's recorded video, with a speed control - since the
+  // browser itself runs on the server, this recording is how a remote user actually gets
+  // to see it happen, rather than just a pass/fail result.
+  function renderRecording(videoUrl) {
+    const wrap = el('div', { class: 'recording' });
+    const video = el('video', { controls: '', preload: 'metadata', src: videoUrl });
+    const speedSelect = el('select', { class: 'speed-select' });
+    for (const speed of PLAYBACK_SPEEDS) {
+      speedSelect.appendChild(el('option', { value: String(speed), text: speed + 'x' }));
+    }
+    speedSelect.value = '1';
+    speedSelect.addEventListener('change', () => {
+      video.playbackRate = Number(speedSelect.value);
+    });
+
+    const header = el('div', { class: 'recording-header' }, [
+      el('span', { text: 'Recording' }),
+      speedSelect,
+    ]);
+    wrap.appendChild(header);
+    wrap.appendChild(video);
+    return wrap;
+  }
+
+  function makeLogFeed() {
+    const feed = el('div', { class: 'log-feed' });
+    feed.appendChild(el('div', { text: 'Working...' }));
+    feed.classList.add('open');
+    const log = (message, isError) => {
+      feed.appendChild(el('div', { class: isError ? 'log-error' : '', text: message }));
+      feed.scrollTop = feed.scrollHeight;
+    };
+    return { feed, log };
+  }
+
+  // ---------- new test case form ----------
+  const newFormBody = $('newFormBody');
+  const newFormToggleBtn = $('newFormToggleBtn');
+  $('newFormToggle').addEventListener('click', () => {
+    newFormBody.classList.toggle('collapsed');
+    newFormToggleBtn.textContent = newFormBody.classList.contains('collapsed') ? 'Show' : 'Hide';
+  });
+
+  function getSelectedTestTypes() {
+    return Array.from($('testTypes').selectedOptions).map((o) => o.value);
+  }
+
+  $('generateBtn').addEventListener('click', async () => {
+    const url = $('url').value.trim();
+    const prompt = $('prompt').value.trim();
+    const context = $('context').value.trim();
+    const testTypes = getSelectedTestTypes();
+
+    const btn = $('generateBtn');
+    const logEl = $('createLog');
+    const errorEl = $('createError');
+    errorEl.style.display = 'none';
+    logEl.innerHTML = '';
+    logEl.classList.add('open');
+    logEl.appendChild(el('div', { text: 'Starting...' }));
+
+    if (!url || !prompt) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'URL and description are both required.';
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const item = await streamRequest(
+        '/api/test-cases',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, prompt, context: context || undefined, testTypes }) },
+        (message) => logEl.appendChild(el('div', { text: message })) && (logEl.scrollTop = logEl.scrollHeight)
+      );
+      $('testCases').insertBefore(renderCard(item), $('testCases').firstChild);
+      hideEmptyState();
+      $('url').value = '';
+      $('prompt').value = '';
+      $('context').value = '';
+      logEl.classList.remove('open');
+      logEl.innerHTML = '';
+    } catch (err) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- test case cards ----------
+  const testCasesEl = $('testCases');
+
+  function hideEmptyState() {
+    const empty = testCasesEl.querySelector('.empty-state');
+    if (empty) empty.remove();
+  }
+
+  function renderSteps(card, item) {
+    const list = card.querySelector('.steps-list');
+    list.innerHTML = '';
+    item.steps.forEach((step, i) => list.appendChild(renderStepRow(card, item, step, i)));
+    const addRow = el('div', { class: 'add-step-row' });
+    const typeSelect = el('select');
+    typeSelect.appendChild(el('option', { value: 'action', text: 'Action' }));
+    typeSelect.appendChild(el('option', { value: 'assertion', text: 'Assertion' }));
+    const input = el('input', { type: 'text', placeholder: 'Describe the new step in plain English...' });
+    const addBtn = el('button', { class: 'text-btn', text: '+ Add Step' });
+    addBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addBtn.disabled = true;
+      input.disabled = true;
+      // Adding a step is a plain text edit - instant, no AI call. It only gets compiled
+      // into real code (and costs anything) the next time this test is run.
+      try {
+        const resp = await fetch(`/api/test-cases/${encodeURIComponent(item.id)}/steps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, type: typeSelect.value }),
+        });
+        const updated = await resp.json();
+        if (!resp.ok) throw new Error(updated.error || 'add step failed');
+        applyUpdatedItem(card, updated);
+      } catch (err) {
+        addBtn.after(el('span', { class: 'error-text', text: 'Error: ' + err.message }));
+        addBtn.disabled = false;
+        input.disabled = false;
+      }
+    });
+    addRow.appendChild(typeSelect);
+    addRow.appendChild(input);
+    addRow.appendChild(addBtn);
+    list.appendChild(addRow);
+  }
+
+  function renderStepRow(card, item, step, index) {
+    const row = el('li', { class: 'step-row', 'data-step-id': step.id });
+    const num = el('span', { class: 'step-num', text: String(index + 1) + '.' });
+    const tag = el('span', { class: 'step-tag step-' + step.type, text: step.type });
+    const text = el('span', { class: 'step-text', text: step.text });
+    const editBtn = el('button', { class: 'step-edit-btn', title: 'Edit step', text: '✎' });
+
+    editBtn.addEventListener('click', () => startEditingStep(card, item, row, step, index));
+
+    row.appendChild(num);
+    row.appendChild(tag);
+    row.appendChild(text);
+    if (step.resolved === false) row.appendChild(el('span', { class: 'pending-badge', title: 'Not yet verified against the live site - will resolve on next run', text: 'pending' }));
+    row.appendChild(editBtn);
+    return row;
+  }
+
+  function startEditingStep(card, item, row, step, index) {
+    row.classList.add('editing');
+    row.innerHTML = '';
+    const num = el('span', { class: 'step-num', text: String(index + 1) + '.' });
+    const typeSelect = el('select', { class: 'step-type-select' });
+    typeSelect.appendChild(el('option', { value: 'action', text: 'Action' }));
+    typeSelect.appendChild(el('option', { value: 'assertion', text: 'Assertion' }));
+    typeSelect.value = step.type;
+    const input = el('input', { class: 'step-edit-input', type: 'text', value: step.text });
+    const saveBtn = el('button', { class: 'text-btn', text: 'Save' });
+    const cancelBtn = el('button', { class: 'text-btn', text: 'Cancel' });
+
+    cancelBtn.addEventListener('click', () => {
+      row.classList.remove('editing');
+      row.replaceWith(renderStepRow(card, item, step, index));
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      input.disabled = true;
+      typeSelect.disabled = true;
+      // Editing a step is a plain text edit - instant, no AI call. It only gets
+      // recompiled into real code (and costs anything) the next time this test is run.
+      try {
+        const resp = await fetch(`/api/test-cases/${encodeURIComponent(item.id)}/steps/${encodeURIComponent(step.id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, type: typeSelect.value }),
+        });
+        const updated = await resp.json();
+        if (!resp.ok) throw new Error(updated.error || 'edit step failed');
+        applyUpdatedItem(card, updated);
+      } catch (err) {
+        row.after(el('span', { class: 'error-text', text: 'Error: ' + err.message }));
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        input.disabled = false;
+        typeSelect.disabled = false;
+      }
+    });
+
+    row.appendChild(num);
+    row.appendChild(typeSelect);
+    row.appendChild(input);
+    row.appendChild(saveBtn);
+    row.appendChild(cancelBtn);
+  }
+
+  function updatePendingBanner(slot, item) {
+    slot.innerHTML = '';
+    const pendingCount = item.steps.filter((s) => s.resolved === false).length;
+    if (pendingCount) {
+      slot.appendChild(el('div', {
+        class: 'pending-banner',
+        text: `${pendingCount} pending step change${pendingCount === 1 ? '' : 's'} - will be verified against the live site the next time you run this test.`,
+      }));
+    }
+  }
+
+  // Refreshes a card's title/steps/code in place after a create/edit/add-step response,
+  // without losing the card's identity (delete/run handlers stay bound to the same node).
+  function applyUpdatedItem(card, item) {
+    card.dataset.item = JSON.stringify(item);
+    card.querySelector('.card-title').textContent = item.title;
+    card.querySelector('.code-pre').textContent = item.code || '(code unavailable)';
+    updatePendingBanner(card.querySelector('.pending-slot'), item);
+    renderSteps(card, item);
+  }
+
+  const RUNG_LABEL = {
+    static: 'passed immediately (no healing needed)',
+    healer: "failed, but the healer fixed it (locator/assertion patch)",
+    intent: "failed and the healer couldn't fix it - recovered by live intent re-derivation",
+  };
+
+  function renderCard(item) {
+    const card = el('div', { class: 'card' });
+    card.dataset.item = JSON.stringify(item);
+
+    const stepsListEl = el('ul', { class: 'steps-list' });
+    const collapseBtn = el('button', { class: 'collapse-btn', title: 'Collapse steps', text: '▾' });
+    collapseBtn.addEventListener('click', () => {
+      const collapsed = stepsListEl.classList.toggle('collapsed');
+      collapseBtn.classList.toggle('collapsed', collapsed);
+      collapseBtn.title = collapsed ? 'Expand steps' : 'Collapse steps';
+    });
+
+    const header = el('div', { class: 'card-header' });
+    header.appendChild(el('div', { class: 'card-title', text: item.title }));
+    header.appendChild(collapseBtn);
+    card.appendChild(header);
+
+    if (item.testTypes?.length) {
+      const badgeRow = el('div', { class: 'badge-row' });
+      for (const t of item.testTypes) badgeRow.appendChild(el('span', { class: 'type-badge type-' + t, text: t.replace('-', ' ') }));
+      card.appendChild(badgeRow);
+    }
+
+    const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
+    const totalTokens = item.totalTokens ?? 0;
+    card.appendChild(el('div', {
+      class: 'card-meta',
+      text: `${when} - ${((item.durationMs || 0) / 1000).toFixed(1)}s total` +
+        (totalTokens ? ` - ${totalTokens} tokens` : '') +
+        (typeof item.apiCostUsd === 'number' ? ` - $${item.apiCostUsd.toFixed(4)} API-equivalent` : ''),
+    }));
+
+    card.appendChild(el('div', { class: 'card-url', text: item.url }));
+    if (item.context) card.appendChild(el('div', { class: 'card-context', text: 'Context: ' + item.context }));
+
+    const pendingSlot = el('div', { class: 'pending-slot' });
+    updatePendingBanner(pendingSlot, item);
+    card.appendChild(pendingSlot);
+
+    card.appendChild(stepsListEl);
+
+    const details = el('details');
+    details.appendChild(el('summary', { text: 'View generated code' }));
+    details.appendChild(el('pre', { class: 'code-pre', text: item.code || '(code unavailable)' }));
+    card.appendChild(details);
+
+    renderSteps(card, item);
+
+    const actions = el('div', { class: 'card-actions' });
+    const runBtn = el('button', { class: 'secondary', text: 'Run Test (self-heal)' });
+    const deleteBtn = el('button', { class: 'danger', text: 'Delete' });
+    const runResultEl = el('div', { class: 'run-result' });
+
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Delete this test case? This removes the file and its history permanently.')) return;
+      deleteBtn.disabled = true;
+      try {
+        const resp = await fetch(`/api/test-cases/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'delete failed');
+        card.remove();
+        if (!testCasesEl.querySelector('.card')) showEmptyState();
+      } catch (err) {
+        deleteBtn.disabled = false;
+        runResultEl.className = 'run-result error-text';
+        runResultEl.textContent = 'Delete failed: ' + err.message;
+      }
+    });
+
+    runBtn.addEventListener('click', async () => {
+      const current = JSON.parse(card.dataset.item);
+      runResultEl.className = 'run-result';
+      runResultEl.innerHTML = '';
+      const { feed, log } = makeLogFeed();
+      runResultEl.appendChild(feed);
+      runBtn.disabled = true;
+      try {
+        const data = await streamRequest(
+          '/api/run-adaptive',
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: current.file, url: current.url, prompt: current.prompt }) },
+          log
+        );
+
+        // Whichever rung ended up touching the file (resolving pending steps, the healer
+        // patching it, or intent-mode rewriting it) reports back the now-current step
+        // list - apply the most downstream one so the card matches what's really on disk.
+        const syncedItem = data.rungs?.writeBack?.item || data.rungs?.healer?.item || data.rungs?.resolvePending?.item;
+        if (syncedItem) applyUpdatedItem(card, syncedItem);
+
+        feed.classList.remove('open');
+        runResultEl.appendChild(el('span', { class: data.finalPassed ? 'pass' : 'fail', text: data.finalPassed ? 'PASSED' : 'FAILED' }));
+        runResultEl.appendChild(document.createTextNode(' - ' + (RUNG_LABEL[data.resolvedAtRung] || data.resolvedAtRung)));
+        if (data.rungs?.healer) {
+          runResultEl.appendChild(document.createElement('br'));
+          runResultEl.appendChild(el('span', { text: 'Healer: ' + data.rungs.healer.summary }));
+        }
+        if (data.rungs?.writeBack?.applied) {
+          runResultEl.appendChild(document.createElement('br'));
+          runResultEl.appendChild(el('span', { text: 'Test file rewritten with the working version - future runs will be fast again.' }));
+        }
+        const reportLink = el('a', { class: 'report-link', href: data.reportUrl, target: '_blank', text: 'View full HTML report (trace/screenshots)' });
+        runResultEl.appendChild(document.createElement('br'));
+        runResultEl.appendChild(reportLink);
+
+        if (data.videoUrl) runResultEl.appendChild(renderRecording(data.videoUrl));
+      } catch (err) {
+        runResultEl.className = 'run-result error-text';
+        runResultEl.textContent = 'Error: ' + err.message;
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+
+    actions.appendChild(runBtn);
+    actions.appendChild(deleteBtn);
+    card.appendChild(actions);
+    card.appendChild(runResultEl);
+
+    return card;
+  }
+
+  function showEmptyState() {
+    testCasesEl.innerHTML = '';
+    testCasesEl.appendChild(el('div', { class: 'empty-state', text: 'No test cases yet - generate your first one above.' }));
+  }
+
+  async function loadTestCases() {
+    testCasesEl.textContent = 'Loading...';
+    try {
+      const resp = await fetch('/api/test-cases');
+      const items = await resp.json();
+      testCasesEl.textContent = '';
+      if (!items.length) return showEmptyState();
+      for (const item of items) testCasesEl.appendChild(renderCard(item));
+    } catch (err) {
+      testCasesEl.textContent = '';
+      testCasesEl.appendChild(el('div', { class: 'error-text', text: 'Could not load test cases: ' + err.message }));
+    }
+  }
+
+  loadTestCases();
+</script>
+</body>
+</html>

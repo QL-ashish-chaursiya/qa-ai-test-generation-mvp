@@ -1,0 +1,132 @@
+{
+  "id": "verify-user-able-to-add-edit-and-delete-faq-mtsmef34",
+  "title": "Verify user able to add, edit, and delete FAQ",
+  "url": "https://admin.ztaygo.com/cms?tab=faqs",
+  "prompt": "verify user able to add edit and delete faq",
+  "context": "ztaygo@admin.com\nZtaygo@4321",
+  "testTypes": [
+    "happy-path"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "text": "Navigate to FAQ management page",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s2",
+      "text": "Enter email address in login form",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s3",
+      "text": "Enter password in login form",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s4",
+      "text": "Click Sign In button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s5",
+      "text": "Wait for page navigation to CMS dashboard",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s6",
+      "text": "Click Add FAQ button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s7",
+      "text": "Enter FAQ question text",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s8",
+      "text": "Enter FAQ answer text in editor",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s9",
+      "text": "Click Create FAQ button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s10",
+      "text": "Verify new FAQ appears in the list with correct question",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s11",
+      "text": "Click edit button on the newly created FAQ",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s12",
+      "text": "Update FAQ question text",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s13",
+      "text": "Click Update FAQ button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s14",
+      "text": "Verify FAQ question is updated with new text",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s15",
+      "text": "Click delete button on the FAQ item",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s16",
+      "text": "Accept deletion confirmation dialog",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s17",
+      "text": "Verify FAQ deleted successfully notification appears",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s18",
+      "text": "Verify FAQ no longer appears in the FAQ list",
+      "type": "assertion",
+      "resolved": true
+    }
+  ],
+  "file": "tests/generated/verify-user-able-to-add-edit-and-delete-faq-mtsmef34.spec.ts",
+  "costUsd": 0.2867892000000001,
+  "durationMs": 109041,
+  "tokens": {
+    "input": 304,
+    "output": 7115,
+    "cacheRead": 1556712,
+    "cacheCreation": 46884
+  },
+  "totalTokens": 1611015,
+  "apiCostUsd": 0.2501552,
+  "createdAt": "2026-09-08T12:04:48.993Z"
+}

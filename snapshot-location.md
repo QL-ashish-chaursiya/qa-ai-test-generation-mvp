@@ -1,0 +1,1004 @@
+- generic [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - link [ref=f2e3] [cursor=pointer]:
+      - /url: https://www.indiamart.com/
+      - img "IndiaMART" [ref=f2e4]
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]:
+        - button "Gurugram" [ref=f2e7] [cursor=pointer]
+        - textbox "City" [active] [ref=f2e987]:
+          - /placeholder: Enter city
+          - text: Lucknow
+      - generic [ref=f2e15]:
+        - textbox "Search product or service" [ref=f2e16]:
+          - /placeholder: Enter product / service to search
+        - link "Search by Image" [ref=f2e17] [cursor=pointer]:
+          - /url: https://lens.indiamart.com/
+        - button [ref=f2e19] [cursor=pointer]
+    - complementary [ref=f2e21]:
+      - link "Get Best Price" [ref=f2e22] [cursor=pointer]:
+        - /url: "#"
+      - navigation [ref=f2e23]:
+        - link "Exporters" [ref=f2e25] [cursor=pointer]:
+          - /url: https://export.indiamart.com/?VElogo=1
+        - link "Sell" [ref=f2e29] [cursor=pointer]:
+          - /url: https://seller.indiamart.com/
+        - link "Help" [ref=f2e33] [cursor=pointer]:
+          - /url: https://help.indiamart.com/
+        - button "Messages" [ref=f2e37] [cursor=pointer]
+        - button "Sign In" [ref=f2e42] [cursor=pointer]
+  - generic [ref=f2e49]:
+    - generic [ref=f2e50]:
+      - generic [ref=f2e51]:
+        - heading "India's Largest Online B2B Marketplace" [level=2] [ref=f2e52]
+        - generic [ref=f2e53]:
+          - paragraph [ref=f2e54]: Connecting 21 Cr+ Buyers with Trusted Sellers
+          - generic [ref=f2e55]:
+            - generic [ref=f2e56] [cursor=pointer]: Post Requirement
+            - link "Start Selling" [ref=f2e62] [cursor=pointer]:
+              - /url: https://seller.indiamart.com/
+            - generic [ref=f2e67] [cursor=pointer]: Sign In
+      - generic [ref=f2e73]:
+        - generic [ref=f2e75]:
+          - generic [ref=f2e76]: 21Cr+
+          - generic [ref=f2e77]: Buyers
+        - generic [ref=f2e79]:
+          - generic [ref=f2e80]: 84L+
+          - generic [ref=f2e81]: Sellers
+        - generic [ref=f2e83]:
+          - generic [ref=f2e84]: 12Cr+
+          - generic [ref=f2e85]: Products & Services
+        - generic [ref=f2e87]:
+          - generic [ref=f2e88]: 30Years
+          - generic [ref=f2e89]: Empowering Businesses
+      - generic [ref=f2e90]:
+        - heading "Trending on IndiaMART" [level=2] [ref=f2e92]
+        - generic [ref=f2e93]:
+          - link "Electric Scooter Electric Scooter" [ref=f2e94] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/electric-scooter.html
+            - img "Electric Scooter" [ref=f2e95]
+            - generic [ref=f2e96]: Electric Scooter
+          - link "Aromatic Incense Sticks Aromatic Incense Sticks" [ref=f2e97] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/aromatic-incense-sticks.html
+            - img "Aromatic Incense Sticks" [ref=f2e98]
+            - generic [ref=f2e99]: Aromatic Incense Sticks
+          - link "Kamadhenu Cow and Calf Statue Kamadhenu Cow and Calf Statue" [ref=f2e100] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/kamdhenu-cow-and-calf-statue.html
+            - img "Kamadhenu Cow and Calf Statue" [ref=f2e101]
+            - generic [ref=f2e102]: Kamadhenu Cow and Calf Statue
+          - link "Dupion Silk Dupion Silk" [ref=f2e103] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/dupion-silk.html
+            - img "Dupion Silk" [ref=f2e104]
+            - generic [ref=f2e105]: Dupion Silk
+          - link "Income Tax Consultant Income Tax Consultant" [ref=f2e106] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/income-tax-consultant.html
+            - img "Income Tax Consultant" [ref=f2e107]
+            - generic [ref=f2e108]: Income Tax Consultant
+          - link "Air Hose Pipe Air Hose Pipe" [ref=f2e109] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/air-hose.html
+            - img "Air Hose Pipe" [ref=f2e110]
+            - generic [ref=f2e111]: Air Hose Pipe
+          - link "Printed Labels Printed Labels" [ref=f2e112] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/printed-labels.html
+            - img "Printed Labels" [ref=f2e113]
+            - generic [ref=f2e114]: Printed Labels
+          - link "Ammonium Bromide Ammonium Bromide" [ref=f2e115] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/ammonium-bromide.html
+            - img "Ammonium Bromide" [ref=f2e116]
+            - generic [ref=f2e117]: Ammonium Bromide
+          - link "TMT Bars TMT Bars" [ref=f2e118] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/tmt-bars.html
+            - img "TMT Bars" [ref=f2e119]
+            - generic [ref=f2e120]: TMT Bars
+          - link "Disposable Toothbrushes Disposable Toothbrushes" [ref=f2e121] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/disposable-toothbrushes.html
+            - img "Disposable Toothbrushes" [ref=f2e122]
+            - generic [ref=f2e123]: Disposable Toothbrushes
+          - link "Acrylic Crockery Acrylic Crockery" [ref=f2e124] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/acrylic-crockery.html
+            - img "Acrylic Crockery" [ref=f2e125]
+            - generic [ref=f2e126]: Acrylic Crockery
+          - link "Aluminium False Ceilings Aluminium False Ceilings" [ref=f2e127] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/aluminium-false-ceilings.html
+            - img "Aluminium False Ceilings" [ref=f2e128]
+            - generic [ref=f2e129]: Aluminium False Ceilings
+          - link "Air Regulators Air Regulators" [ref=f2e130] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/air-regulators.html
+            - img "Air Regulators" [ref=f2e131]
+            - generic [ref=f2e132]: Air Regulators
+          - link "AC Power Supply AC Power Supply" [ref=f2e133] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/ac-power-supply.html
+            - img "AC Power Supply" [ref=f2e134]
+            - generic [ref=f2e135]: AC Power Supply
+          - link "Stainless Steel Wire Stainless Steel Wire" [ref=f2e136] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/stainless-steel-wire.html
+            - img "Stainless Steel Wire" [ref=f2e137]
+            - generic [ref=f2e138]: Stainless Steel Wire
+          - link "Custom Flag Custom Flag" [ref=f2e139] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/custom-flag.html
+            - img "Custom Flag" [ref=f2e140]
+            - generic [ref=f2e141]: Custom Flag
+          - link "Wicker Chair Wicker Chair" [ref=f2e142] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wicker-chair.html
+            - img "Wicker Chair" [ref=f2e143]
+            - generic [ref=f2e144]: Wicker Chair
+          - link "Coconut Tree Climber Coconut Tree Climber" [ref=f2e145] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/coconut-tree-climber.html
+            - img "Coconut Tree Climber" [ref=f2e146]
+            - generic [ref=f2e147]: Coconut Tree Climber
+    - generic [ref=f2e148]:
+      - heading "Explore by Industry" [level=2] [ref=f2e150]
+      - generic [ref=f2e151]:
+        - link "Automobile, Parts & Spares" [ref=f2e153] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/automobiles-spares.html
+        - generic [ref=f2e155]:
+          - link "E-Rickshaw Loader E-Rickshaw Loader" [ref=f2e156] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/e-rickshaw-loader.html
+            - img "E-Rickshaw Loader" [ref=f2e157]
+            - generic [ref=f2e158]: E-Rickshaw Loader
+          - link "EV Charging Station EV Charging Station" [ref=f2e159] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/ev-charging-station.html
+            - img "EV Charging Station" [ref=f2e160]
+            - generic [ref=f2e161]: EV Charging Station
+          - link "Electric Scooter Batteries Electric Scooter Batteries" [ref=f2e162] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/electric-scooter-batteries.html
+            - img "Electric Scooter Batteries" [ref=f2e163]
+            - generic [ref=f2e164]: Electric Scooter Batteries
+          - link "Electric Bike Charger Electric Bike Charger" [ref=f2e165] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/electric-bike-charger.html
+            - img "Electric Bike Charger" [ref=f2e166]
+            - generic [ref=f2e167]: Electric Bike Charger
+          - link "Battery Operated Rickshaw Battery Operated Rickshaw" [ref=f2e168] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/battery-operated-rickshaw.html
+            - img "Battery Operated Rickshaw" [ref=f2e169]
+            - generic [ref=f2e170]: Battery Operated Rickshaw
+          - link "Electric Bicycle Electric Bicycle" [ref=f2e171] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/electric-bicycle.html
+            - img "Electric Bicycle" [ref=f2e172]
+            - generic [ref=f2e173]: Electric Bicycle
+      - generic [ref=f2e174]:
+        - link "Housewares & Supplies" [ref=f2e176] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/home-supplies.html
+        - generic [ref=f2e178]:
+          - link "Incense Sticks Incense Sticks" [ref=f2e179] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/agarbatti.html
+            - img "Incense Sticks" [ref=f2e180]
+            - generic [ref=f2e181]: Incense Sticks
+          - link "Cotton Wicks Cotton Wicks" [ref=f2e182] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cotton-wicks.html
+            - img "Cotton Wicks" [ref=f2e183]
+            - generic [ref=f2e184]: Cotton Wicks
+          - link "Laddu Gopal Dress Laddu Gopal Dress" [ref=f2e185] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/laddu-gopal-dress.html
+            - img "Laddu Gopal Dress" [ref=f2e186]
+            - generic [ref=f2e187]: Laddu Gopal Dress
+          - link "Lamp Oil Lamp Oil" [ref=f2e188] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/lamp-oil.html
+            - img "Lamp Oil" [ref=f2e189]
+            - generic [ref=f2e190]: Lamp Oil
+          - link "Raw Incense Stick Raw Incense Stick" [ref=f2e191] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/raw-incense-stick.html
+            - img "Raw Incense Stick" [ref=f2e192]
+            - generic [ref=f2e193]: Raw Incense Stick
+          - link "Dhoop Sticks Dhoop Sticks" [ref=f2e194] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/dhoop-sticks.html
+            - img "Dhoop Sticks" [ref=f2e195]
+            - generic [ref=f2e196]: Dhoop Sticks
+      - generic [ref=f2e197]:
+        - link "Handicrafts & Decoratives" [ref=f2e199] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/handicrafts-gifts.html
+        - generic [ref=f2e201]:
+          - link "Brass God Statues Brass God Statues" [ref=f2e202] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/brass-god-statues.html
+            - img "Brass God Statues" [ref=f2e203]
+            - generic [ref=f2e204]: Brass God Statues
+          - link "Marble Radha Krishna Statue Marble Radha Krishna Statue" [ref=f2e205] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/marble-radha-krishna-statue.html
+            - img "Marble Radha Krishna Statue" [ref=f2e206]
+            - generic [ref=f2e207]: Marble Radha Krishna Statue
+          - link "Vastu Accessories Vastu Accessories" [ref=f2e208] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/vastu-accessories.html
+            - img "Vastu Accessories" [ref=f2e209]
+            - generic [ref=f2e210]: Vastu Accessories
+          - link "Marble Ganesh Statue Marble Ganesh Statue" [ref=f2e211] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/marble-ganesh-statue.html
+            - img "Marble Ganesh Statue" [ref=f2e212]
+            - generic [ref=f2e213]: Marble Ganesh Statue
+          - link "Marble Kali Mata Statue Marble Kali Mata Statue" [ref=f2e214] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/marble-kali-mata-statue.html
+            - img "Marble Kali Mata Statue" [ref=f2e215]
+            - generic [ref=f2e216]: Marble Kali Mata Statue
+          - link "Religious Frame Religious Frame" [ref=f2e217] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/religious-frame.html
+            - img "Religious Frame" [ref=f2e218]
+            - generic [ref=f2e219]: Religious Frame
+      - link [ref=f2e220] [cursor=pointer]:
+        - /url: https://lens.indiamart.com/home
+        - generic [ref=f2e221]:
+          - generic [ref=f2e222]: Advanced AI Visual Search
+          - heading "Find Products Instantly" [level=2] [ref=f2e225]
+          - paragraph [ref=f2e226]: Upload any product image and discover matching items from verified suppliers across India.
+          - generic [ref=f2e227]:
+            - generic [ref=f2e228]: Visual Search
+            - generic [ref=f2e231]: Search History
+            - generic [ref=f2e235]: Saved Products
+        - generic [ref=f2e238]: Search any image with Lens
+      - generic [ref=f2e241]:
+        - link "Apparel & Garments" [ref=f2e243] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/apparel-garments.html
+        - generic [ref=f2e245]:
+          - link "Interlock Fabric Interlock Fabric" [ref=f2e246] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/interlock-fabrics.html
+            - img "Interlock Fabric" [ref=f2e247]
+            - generic [ref=f2e248]: Interlock Fabric
+          - link "Industrial Gloves Industrial Gloves" [ref=f2e249] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/industrial-gloves.html
+            - img "Industrial Gloves" [ref=f2e250]
+            - generic [ref=f2e251]: Industrial Gloves
+          - link "Banian Waste Banian Waste" [ref=f2e252] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/banyan-waste.html
+            - img "Banian Waste" [ref=f2e253]
+            - generic [ref=f2e254]: Banian Waste
+          - link "Men Sublimation T-Shirt Men Sublimation T-Shirt" [ref=f2e255] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/sublimation-t-shirts.html
+            - img "Men Sublimation T-Shirt" [ref=f2e256]
+            - generic [ref=f2e257]: Men Sublimation T-Shirt
+          - link "Wooden Printing Blocks Wooden Printing Blocks" [ref=f2e258] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wooden-printing-blocks.html
+            - img "Wooden Printing Blocks" [ref=f2e259]
+            - generic [ref=f2e260]: Wooden Printing Blocks
+          - link "Kalamkari Saree Kalamkari Saree" [ref=f2e261] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/kalamkari-saree.html
+            - img "Kalamkari Saree" [ref=f2e262]
+            - generic [ref=f2e263]: Kalamkari Saree
+      - generic [ref=f2e264]:
+        - link "Financial & Legal Services" [ref=f2e266] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/finance-law.html
+        - generic [ref=f2e268]:
+          - link "Trust Society Registration Trust Society Registration" [ref=f2e269] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/trust-society-registration.html
+            - img "Trust Society Registration" [ref=f2e270]
+            - generic [ref=f2e271]: Trust Society Registration
+          - link "Share Market Tip Services Share Market Tip Services" [ref=f2e272] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/share-market-tip-services.html
+            - img "Share Market Tip Services" [ref=f2e273]
+            - generic [ref=f2e274]: Share Market Tip Services
+          - link "Labour Law Services Labour Law Services" [ref=f2e275] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/labour-law-services.html
+            - img "Labour Law Services" [ref=f2e276]
+            - generic [ref=f2e277]: Labour Law Services
+          - link "Legal Documentation Services Legal Documentation Services" [ref=f2e278] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/legal-documentation-services.html
+            - img "Legal Documentation Services" [ref=f2e279]
+            - generic [ref=f2e280]: Legal Documentation Services
+          - link "Compliance Service Compliance Service" [ref=f2e281] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/compliance-service.html
+            - img "Compliance Service" [ref=f2e282]
+            - generic [ref=f2e283]: Compliance Service
+          - link "Valuation Services Valuation Services" [ref=f2e284] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/valuation-services.html
+            - img "Valuation Services" [ref=f2e285]
+            - generic [ref=f2e286]: Valuation Services
+      - generic [ref=f2e287]:
+        - link "Industrial Supplies" [ref=f2e289] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/industrial-supplies.html
+        - generic [ref=f2e291]:
+          - link "Plate Flange Plate Flange" [ref=f2e292] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/plate-flange.html
+            - img "Plate Flange" [ref=f2e293]
+            - generic [ref=f2e294]: Plate Flange
+          - link "Filter Pads Filter Pads" [ref=f2e295] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/filter-pads.html
+            - img "Filter Pads" [ref=f2e296]
+            - generic [ref=f2e297]: Filter Pads
+          - link "Magnetic Filters Magnetic Filters" [ref=f2e298] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/magnetic-filters.html
+            - img "Magnetic Filters" [ref=f2e299]
+            - generic [ref=f2e300]: Magnetic Filters
+          - link "Fiberglass Rope Fiberglass Rope" [ref=f2e301] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/fiberglass-rope.html
+            - img "Fiberglass Rope" [ref=f2e302]
+            - generic [ref=f2e303]: Fiberglass Rope
+          - link "Air Ventilation System Air Ventilation System" [ref=f2e304] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/air-ventilation-system.html
+            - img "Air Ventilation System" [ref=f2e305]
+            - generic [ref=f2e306]: Air Ventilation System
+          - link "Cylindrical Tanks Cylindrical Tanks" [ref=f2e307] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cylindrical-tanks.html
+            - img "Cylindrical Tanks" [ref=f2e308]
+            - generic [ref=f2e309]: Cylindrical Tanks
+      - generic [ref=f2e310]:
+        - link [ref=f2e311] [cursor=pointer]:
+          - /url: https://flips.indiamart.com/
+          - generic [ref=f2e312]:
+            - generic [ref=f2e313]:
+              - generic [ref=f2e314]: Trusted by 50,000+ sellers
+              - generic [ref=f2e318]: YouTube & Meta Verified
+              - generic [ref=f2e322]: Hassle-free Integration
+              - generic [ref=f2e326]: Increase buyer engagement
+            - generic [ref=f2e331]:
+              - heading "Join IndiaMART Videos" [level=3] [ref=f2e332]
+              - paragraph [ref=f2e333]: Connect your social media accounts to showcase videos on your IndiaMART catalog
+              - generic [ref=f2e334]: Join Now
+        - generic [ref=f2e337]:
+          - heading "Successfully Connected Sellers" [level=4] [ref=f2e338]
+          - generic [ref=f2e339]:
+            - link "SLTL Group" [ref=f2e340] [cursor=pointer]:
+              - /url: https://www.indiamart.com/sahajanandlaser/videos.html
+            - link "Asian Adores" [ref=f2e343] [cursor=pointer]:
+              - /url: https://www.indiamart.com/adoragifts/videos.html
+            - link "Moini Fabrics" [ref=f2e346] [cursor=pointer]:
+              - /url: https://www.indiamart.com/moini-fabrics/videos.html
+            - link "Azam Industries" [ref=f2e349] [cursor=pointer]:
+              - /url: https://www.indiamart.com/azamindustries/videos.html
+            - link "3D Aqua" [ref=f2e352] [cursor=pointer]:
+              - /url: https://www.indiamart.com/3d-aqua/videos.html
+      - generic [ref=f2e355]:
+        - link "Packaging Machines & Goods" [ref=f2e357] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/packaging-material.html
+        - generic [ref=f2e359]:
+          - link "Masking Tapes Masking Tapes" [ref=f2e360] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/masking-tapes.html
+            - img "Masking Tapes" [ref=f2e361]
+            - generic [ref=f2e362]: Masking Tapes
+          - link "TPU Film TPU Film" [ref=f2e363] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/tpu-film.html
+            - img "TPU Film" [ref=f2e364]
+            - generic [ref=f2e365]: TPU Film
+          - link "Gloss Lamination Film Gloss Lamination Film" [ref=f2e366] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/gloss-lamination.html
+            - img "Gloss Lamination Film" [ref=f2e367]
+            - generic [ref=f2e368]: Gloss Lamination Film
+          - link "Foam Strip Foam Strip" [ref=f2e369] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/foam-strip.html
+            - img "Foam Strip" [ref=f2e370]
+            - generic [ref=f2e371]: Foam Strip
+          - link "Cam Buckles Cam Buckles" [ref=f2e372] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cam-buckles.html
+            - img "Cam Buckles" [ref=f2e373]
+            - generic [ref=f2e374]: Cam Buckles
+          - link "Folding PP Boxes Folding PP Boxes" [ref=f2e375] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/folding-pp-boxes.html
+            - img "Folding PP Boxes" [ref=f2e376]
+            - generic [ref=f2e377]: Folding PP Boxes
+      - generic [ref=f2e378]:
+        - link "Chemicals, Dyes & Solvents" [ref=f2e380] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/chemicals-fertilizers.html
+        - generic [ref=f2e382]:
+          - link "Iron Phosphate Iron Phosphate" [ref=f2e383] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/iron-phosphate.html
+            - img "Iron Phosphate" [ref=f2e384]
+            - generic [ref=f2e385]: Iron Phosphate
+          - link "Red Iron Oxides Red Iron Oxides" [ref=f2e386] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/red-iron-oxides.html
+            - img "Red Iron Oxides" [ref=f2e387]
+            - generic [ref=f2e388]: Red Iron Oxides
+          - link "Ketonic Resin Ketonic Resin" [ref=f2e389] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/ketonic-resin.html
+            - img "Ketonic Resin" [ref=f2e390]
+            - generic [ref=f2e391]: Ketonic Resin
+          - link "Eugenol Eugenol" [ref=f2e392] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/eugenol.html
+            - img "Eugenol" [ref=f2e393]
+            - generic [ref=f2e394]: Eugenol
+          - link "Poly Aluminium Chloride Poly Aluminium Chloride" [ref=f2e395] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/poly-aluminium-chloride.html
+            - img "Poly Aluminium Chloride" [ref=f2e396]
+            - generic [ref=f2e397]: Poly Aluminium Chloride
+          - link "Methacrylic Acid Methacrylic Acid" [ref=f2e398] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/methacrylic-acid.html
+            - img "Methacrylic Acid" [ref=f2e399]
+            - generic [ref=f2e400]: Methacrylic Acid
+      - generic [ref=f2e401]:
+        - link "Building & Construction" [ref=f2e403] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/builders-hardware.html
+        - generic [ref=f2e405]:
+          - link "Wood Handles Wood Handles" [ref=f2e406] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wood-handles.html
+            - img "Wood Handles" [ref=f2e407]
+            - generic [ref=f2e408]: Wood Handles
+          - link "Chain Pulleys Chain Pulleys" [ref=f2e409] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/chain-pulleys.html
+            - img "Chain Pulleys" [ref=f2e410]
+            - generic [ref=f2e411]: Chain Pulleys
+          - link "Forklift Forklift" [ref=f2e412] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/forklift.html
+            - img "Forklift" [ref=f2e413]
+            - generic [ref=f2e414]: Forklift
+          - link "Shower Cabins Shower Cabins" [ref=f2e415] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/shower-cabinets.html
+            - img "Shower Cabins" [ref=f2e416]
+            - generic [ref=f2e417]: Shower Cabins
+          - link "Square Tubes Square Tubes" [ref=f2e418] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/square-tubes.html
+            - img "Square Tubes" [ref=f2e419]
+            - generic [ref=f2e420]: Square Tubes
+          - link "Trolley Hoists Trolley Hoists" [ref=f2e421] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/trolley-hoists.html
+            - img "Trolley Hoists" [ref=f2e422]
+            - generic [ref=f2e423]: Trolley Hoists
+      - generic [ref=f2e424]:
+        - generic [ref=f2e425]:
+          - generic [ref=f2e426]: India's Largest B2B Marketplace
+          - heading "Find the Verified Suppliers" [level=3] [ref=f2e427]
+          - paragraph [ref=f2e428]: Search millions of products & services
+        - generic [ref=f2e429]:
+          - textbox "Search for products, services..." [ref=f2e431]
+          - button "SEARCH" [ref=f2e432] [cursor=pointer]
+      - generic [ref=f2e433]:
+        - link "Cosmetics & Personal Care" [ref=f2e435] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/cosmetics-toiletries.html
+        - generic [ref=f2e437]:
+          - link "Tattoo Removal Machine Tattoo Removal Machine" [ref=f2e438] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/tattoo-removal-machine.html
+            - img "Tattoo Removal Machine" [ref=f2e439]
+            - generic [ref=f2e440]: Tattoo Removal Machine
+          - link "Makeup Chair Makeup Chair" [ref=f2e441] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/makeup-chair.html
+            - img "Makeup Chair" [ref=f2e442]
+            - generic [ref=f2e443]: Makeup Chair
+          - link "Bath Bomb Bath Bomb" [ref=f2e444] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/bath-bomb.html
+            - img "Bath Bomb" [ref=f2e445]
+            - generic [ref=f2e446]: Bath Bomb
+          - link "Soap Third Party Manufacturing Soap Third Party Manufacturing" [ref=f2e447] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/soap-third-party-manufacturing.html
+            - img "Soap Third Party Manufacturing" [ref=f2e448]
+            - generic [ref=f2e449]: Soap Third Party Manufacturing
+          - link "Aloe Vera Gel Aloe Vera Gel" [ref=f2e450] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/aloe-vera-gel.html
+            - img "Aloe Vera Gel" [ref=f2e451]
+            - generic [ref=f2e452]: Aloe Vera Gel
+          - link "Jasmine Oil Jasmine Oil" [ref=f2e453] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/jasmine-oil.html
+            - img "Jasmine Oil" [ref=f2e454]
+            - generic [ref=f2e455]: Jasmine Oil
+      - generic [ref=f2e456]:
+        - link "Kitchen Utensils & Appliances" [ref=f2e458] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/kitchen-utensils-cookware.html
+        - generic [ref=f2e460]:
+          - link "Bain Marie Bain Marie" [ref=f2e461] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/bain-marie.html
+            - img "Bain Marie" [ref=f2e462]
+            - generic [ref=f2e463]: Bain Marie
+          - link "Paper Straw Paper Straw" [ref=f2e464] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/paper-straw.html
+            - img "Paper Straw" [ref=f2e465]
+            - generic [ref=f2e466]: Paper Straw
+          - link "Bronze Serving Plate Bronze Serving Plate" [ref=f2e467] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/bronze-plate.html
+            - img "Bronze Serving Plate" [ref=f2e468]
+            - generic [ref=f2e469]: Bronze Serving Plate
+          - link "Hip Flask Hip Flask" [ref=f2e470] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/hip-flask.html
+            - img "Hip Flask" [ref=f2e471]
+            - generic [ref=f2e472]: Hip Flask
+          - link "Deep Fryer Deep Fryer" [ref=f2e473] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/deep-fryer.html
+            - img "Deep Fryer" [ref=f2e474]
+            - generic [ref=f2e475]: Deep Fryer
+          - link "Leather Tray Leather Tray" [ref=f2e476] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/leather-tray.html
+            - img "Leather Tray" [ref=f2e477]
+            - generic [ref=f2e478]: Leather Tray
+      - generic [ref=f2e479]:
+        - link "Architecture & Interiors" [ref=f2e481] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/architectural-designing.html
+        - generic [ref=f2e483]:
+          - link "Modular Kitchen Cabinets Modular Kitchen Cabinets" [ref=f2e484] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/modular-kitchen-cabinets.html
+            - img "Modular Kitchen Cabinets" [ref=f2e485]
+            - generic [ref=f2e486]: Modular Kitchen Cabinets
+          - link "GC Sheets GC Sheets" [ref=f2e487] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/gc-sheets.html
+            - img "GC Sheets" [ref=f2e488]
+            - generic [ref=f2e489]: GC Sheets
+          - link "Metal False Ceiling Metal False Ceiling" [ref=f2e490] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/metal-false-ceiling.html
+            - img "Metal False Ceiling" [ref=f2e491]
+            - generic [ref=f2e492]: Metal False Ceiling
+          - link "Tubular Skylights Tubular Skylights" [ref=f2e493] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/tubular-skylights.html
+            - img "Tubular Skylights" [ref=f2e494]
+            - generic [ref=f2e495]: Tubular Skylights
+          - link "Interior Decorators Interior Decorators" [ref=f2e496] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/interior-decoration.html
+            - img "Interior Decorators" [ref=f2e497]
+            - generic [ref=f2e498]: Interior Decorators
+          - link "Metal Ceilings Metal Ceilings" [ref=f2e499] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/metal-ceilings.html
+            - img "Metal Ceilings" [ref=f2e500]
+            - generic [ref=f2e501]: Metal Ceilings
+      - link "Get a free listing in 3 simple steps 1 Create Account Add your name and phone number to get started 2 Add Business Add name, address & e-mail of your company, store/business 3 Add Products/ Services Minimum 3 products/services needed for your free listing page Start Selling" [ref=f2e502] [cursor=pointer]:
+        - /url: https://seller.indiamart.com/
+        - heading "Get a free listing in 3 simple steps" [level=2] [ref=f2e503]
+        - generic [ref=f2e504]:
+          - generic [ref=f2e505]:
+            - generic [ref=f2e506]: "1"
+            - generic [ref=f2e512]: Create Account
+            - generic [ref=f2e513]: Add your name and phone number to get started
+          - generic [ref=f2e514]:
+            - generic [ref=f2e515]: "2"
+            - generic [ref=f2e520]: Add Business
+            - generic [ref=f2e521]: Add name, address & e-mail of your company, store/business
+          - generic [ref=f2e522]:
+            - generic [ref=f2e523]: "3"
+            - generic [ref=f2e529]: Add Products/ Services
+            - generic [ref=f2e530]: Minimum 3 products/services needed for your free listing page
+        - generic [ref=f2e531]: Start Selling
+      - generic [ref=f2e534]:
+        - link "Industrial Plants & Machinery" [ref=f2e536] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/plant-machinery.html
+        - generic [ref=f2e538]:
+          - link "Basket Centrifuges Basket Centrifuges" [ref=f2e539] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/basket-centrifuges.html
+            - img "Basket Centrifuges" [ref=f2e540]
+            - generic [ref=f2e541]: Basket Centrifuges
+          - link "Sheetfed Offset Printing Machine Sheetfed Offset Printing Machine" [ref=f2e542] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/sheetfed-offset-printing-machine.html
+            - img "Sheetfed Offset Printing Machine" [ref=f2e543]
+            - generic [ref=f2e544]: Sheetfed Offset Printing Machine
+          - link "Cloth Cutting Machine Cloth Cutting Machine" [ref=f2e545] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cloth-cutting-machine.html
+            - img "Cloth Cutting Machine" [ref=f2e546]
+            - generic [ref=f2e547]: Cloth Cutting Machine
+          - link "Baling Machines Baling Machines" [ref=f2e548] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/bailing-machines.html
+            - img "Baling Machines" [ref=f2e549]
+            - generic [ref=f2e550]: Baling Machines
+          - link "Oil Mills Oil Mills" [ref=f2e551] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/oil-mills.html
+            - img "Oil Mills" [ref=f2e552]
+            - generic [ref=f2e553]: Oil Mills
+          - link "Metal Melting Furnaces Metal Melting Furnaces" [ref=f2e554] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/metal-melting-furnaces.html
+            - img "Metal Melting Furnaces" [ref=f2e555]
+            - generic [ref=f2e556]: Metal Melting Furnaces
+      - generic [ref=f2e557]:
+        - link "Consumer Electronics" [ref=f2e559] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/electronic-goods.html
+        - generic [ref=f2e561]:
+          - link "Cardboard Shredders Cardboard Shredders" [ref=f2e562] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cardboard-shredders.html
+            - img "Cardboard Shredders" [ref=f2e563]
+            - generic [ref=f2e564]: Cardboard Shredders
+          - link "Warning Lights Warning Lights" [ref=f2e565] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/warning-lights.html
+            - img "Warning Lights" [ref=f2e566]
+            - generic [ref=f2e567]: Warning Lights
+          - link "Sewer & Drain Cleaner Sewer & Drain Cleaner" [ref=f2e568] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/drain-cleaning-machine.html
+            - img "Sewer & Drain Cleaner" [ref=f2e569]
+            - generic [ref=f2e570]: Sewer & Drain Cleaner
+          - link "LED Warning Light LED Warning Light" [ref=f2e571] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/led-warning-light.html
+            - img "LED Warning Light" [ref=f2e572]
+            - generic [ref=f2e573]: LED Warning Light
+          - link "CCTV Installation Services CCTV Installation Services" [ref=f2e574] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cctv-installation-services.html
+            - img "CCTV Installation Services" [ref=f2e575]
+            - generic [ref=f2e576]: CCTV Installation Services
+          - link "Industrial Extension Board Industrial Extension Board" [ref=f2e577] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/industrial-extension-board.html
+            - img "Industrial Extension Board" [ref=f2e578]
+            - generic [ref=f2e579]: Industrial Extension Board
+      - generic [ref=f2e580]:
+        - link "Electrical Equipment" [ref=f2e582] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/electrical-equipment-supplies.html
+        - generic [ref=f2e584]:
+          - link "Multicore Cables Multicore Cables" [ref=f2e585] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/multicore-cables.html
+            - img "Multicore Cables" [ref=f2e586]
+            - generic [ref=f2e587]: Multicore Cables
+          - link "Cable Gland and Accessories Cable Gland and Accessories" [ref=f2e588] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cable-gland.html
+            - img "Cable Gland and Accessories" [ref=f2e589]
+            - generic [ref=f2e590]: Cable Gland and Accessories
+          - link "Solid Core Insulator Solid Core Insulator" [ref=f2e591] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/solid-core-insulator.html
+            - img "Solid Core Insulator" [ref=f2e592]
+            - generic [ref=f2e593]: Solid Core Insulator
+          - link "Hydraulic Drive Motor Hydraulic Drive Motor" [ref=f2e594] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/hydraulic-drive-motor.html
+            - img "Hydraulic Drive Motor" [ref=f2e595]
+            - generic [ref=f2e596]: Hydraulic Drive Motor
+          - link "Recirculating Chillers Recirculating Chillers" [ref=f2e597] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/recirculating-chillers.html
+            - img "Recirculating Chillers" [ref=f2e598]
+            - generic [ref=f2e599]: Recirculating Chillers
+          - link "Turbine Blower Turbine Blower" [ref=f2e600] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/turbine-blower.html
+            - img "Turbine Blower" [ref=f2e601]
+            - generic [ref=f2e602]: Turbine Blower
+      - generic [ref=f2e603]:
+        - generic [ref=f2e605]: Accounting Solutions
+        - heading "Accounting Software for Small & Medium Businesses in India" [level=3] [ref=f2e606]
+        - generic [ref=f2e607]:
+          - generic [ref=f2e608]:
+            - img "Busy" [ref=f2e609]
+            - generic [ref=f2e610]:
+              - link "Accounting Software" [ref=f2e611] [cursor=pointer]:
+                - /url: https://busy.in/accounting-software/
+              - link "GST e-Invoice" [ref=f2e614] [cursor=pointer]:
+                - /url: https://busy.in/accounting-software/e-invoice/
+          - generic [ref=f2e617]:
+            - generic [ref=f2e619]:
+              - generic [ref=f2e620]:
+                - text: Live Keeping
+                - superscript [ref=f2e621]: ®
+              - generic [ref=f2e623]: an indiamart Company
+            - link "Tally on Mobile" [ref=f2e624] [cursor=pointer]:
+              - /url: https://www.livekeeping.com/
+      - generic [ref=f2e627]:
+        - link "Handicrafts & Decoratives" [ref=f2e629] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/handicrafts-gifts.html
+        - generic [ref=f2e631]:
+          - link "Marble Animal Statue Marble Animal Statue" [ref=f2e632] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/marble-animal-statue.html
+            - img "Marble Animal Statue" [ref=f2e633]
+            - generic [ref=f2e634]: Marble Animal Statue
+          - link "Flag Mast Pole Flag Mast Pole" [ref=f2e635] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/flag-mast-pole.html
+            - img "Flag Mast Pole" [ref=f2e636]
+            - generic [ref=f2e637]: Flag Mast Pole
+          - link "Plantable Seed Rakhi Plantable Seed Rakhi" [ref=f2e638] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/plantable-seed-rakhi.html
+            - img "Plantable Seed Rakhi" [ref=f2e639]
+            - generic [ref=f2e640]: Plantable Seed Rakhi
+          - link "Wooden Box Wooden Box" [ref=f2e641] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wooden-box.html
+            - img "Wooden Box" [ref=f2e642]
+            - generic [ref=f2e643]: Wooden Box
+          - link "Brass Bells Brass Bells" [ref=f2e644] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/brass-bells.html
+            - img "Brass Bells" [ref=f2e645]
+            - generic [ref=f2e646]: Brass Bells
+          - link "Sandstone Statues Sandstone Statues" [ref=f2e647] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/sandstone-statues.html
+            - img "Sandstone Statues" [ref=f2e648]
+            - generic [ref=f2e649]: Sandstone Statues
+      - generic [ref=f2e650]:
+        - link "Furniture & Supplies" [ref=f2e652] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/furniture.html
+        - generic [ref=f2e654]:
+          - link "Restaurant Table & Chair Restaurant Table & Chair" [ref=f2e655] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/restaurant-furniture.html
+            - img "Restaurant Table & Chair" [ref=f2e656]
+            - generic [ref=f2e657]: Restaurant Table & Chair
+          - link "Stadium Chair Stadium Chair" [ref=f2e658] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/stadium-chair.html
+            - img "Stadium Chair" [ref=f2e659]
+            - generic [ref=f2e660]: Stadium Chair
+          - link "Dual Desk Bench Dual Desk Bench" [ref=f2e661] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/dual-desk-bench.html
+            - img "Dual Desk Bench" [ref=f2e662]
+            - generic [ref=f2e663]: Dual Desk Bench
+          - link "Wooden Office Furniture Wooden Office Furniture" [ref=f2e664] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wooden-office-furniture.html
+            - img "Wooden Office Furniture" [ref=f2e665]
+            - generic [ref=f2e666]: Wooden Office Furniture
+          - link "Wrought Iron Dining Table Wrought Iron Dining Table" [ref=f2e667] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/wrought-iron-dining-tables.html
+            - img "Wrought Iron Dining Table" [ref=f2e668]
+            - generic [ref=f2e669]: Wrought Iron Dining Table
+          - link "Cast Iron Chairs Cast Iron Chairs" [ref=f2e670] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/cast-iron-chairs.html
+            - img "Cast Iron Chairs" [ref=f2e671]
+            - generic [ref=f2e672]: Cast Iron Chairs
+      - generic [ref=f2e673]:
+        - link "Agriculture & Farming" [ref=f2e675] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/agro-poultry-dairy.html
+        - generic [ref=f2e677]:
+          - link "Verticillium Lecanii Verticillium Lecanii" [ref=f2e678] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/verticillium-lecanii.html
+            - img "Verticillium Lecanii" [ref=f2e679]
+            - generic [ref=f2e680]: Verticillium Lecanii
+          - link "Universal Joint Cross Universal Joint Cross" [ref=f2e681] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/universal-joint-cross.html
+            - img "Universal Joint Cross" [ref=f2e682]
+            - generic [ref=f2e683]: Universal Joint Cross
+          - link "Pseudomonas Fluorescens Pseudomonas Fluorescens" [ref=f2e684] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/pseudomonas-fluorescens.html
+            - img "Pseudomonas Fluorescens" [ref=f2e685]
+            - generic [ref=f2e686]: Pseudomonas Fluorescens
+          - link "Gravity Separator Gravity Separator" [ref=f2e687] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/gravity-separator.html
+            - img "Gravity Separator" [ref=f2e688]
+            - generic [ref=f2e689]: Gravity Separator
+          - link "Gokhru Seed Gokhru Seed" [ref=f2e690] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/gokhru-seed.html
+            - img "Gokhru Seed" [ref=f2e691]
+            - generic [ref=f2e692]: Gokhru Seed
+          - link "Barium Carbonate Barium Carbonate" [ref=f2e693] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/barium-carbonate.html
+            - img "Barium Carbonate" [ref=f2e694]
+            - generic [ref=f2e695]: Barium Carbonate
+      - generic [ref=f2e696]:
+        - link "Food & Beverages" [ref=f2e698] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/agro-farm.html
+        - generic [ref=f2e700]:
+          - link "Natural Sweetener Natural Sweetener" [ref=f2e701] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/natural-sweetener.html
+            - img "Natural Sweetener" [ref=f2e702]
+            - generic [ref=f2e703]: Natural Sweetener
+          - link "Iranian Saffrons Iranian Saffrons" [ref=f2e704] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/iranian-saffrons.html
+            - img "Iranian Saffrons" [ref=f2e705]
+            - generic [ref=f2e706]: Iranian Saffrons
+          - link "Virgin Coconut Oil Virgin Coconut Oil" [ref=f2e707] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/virgin-coconut-oil.html
+            - img "Virgin Coconut Oil" [ref=f2e708]
+            - generic [ref=f2e709]: Virgin Coconut Oil
+          - link "Sucralose Sucralose" [ref=f2e710] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/sucralose.html
+            - img "Sucralose" [ref=f2e711]
+            - generic [ref=f2e712]: Sucralose
+          - link "Polysorbate 20 Polysorbate 20" [ref=f2e713] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/polysorbate-20.html
+            - img "Polysorbate 20" [ref=f2e714]
+            - generic [ref=f2e715]: Polysorbate 20
+          - link "Freeze Dried Mango Freeze Dried Mango" [ref=f2e716] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/freeze-dried-mango.html
+            - img "Freeze Dried Mango" [ref=f2e717]
+            - generic [ref=f2e718]: Freeze Dried Mango
+      - generic [ref=f2e719]:
+        - link "Gems, Jewelry & Astrology" [ref=f2e721] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/industry/gems-jewellery.html
+        - generic [ref=f2e723]:
+          - link "Palm Stone Palm Stone" [ref=f2e724] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/palmstone.html
+            - img "Palm Stone" [ref=f2e725]
+            - generic [ref=f2e726]: Palm Stone
+          - link "Tanzanite Gemstone Tanzanite Gemstone" [ref=f2e727] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/tanzanite-gemstone.html
+            - img "Tanzanite Gemstone" [ref=f2e728]
+            - generic [ref=f2e729]: Tanzanite Gemstone
+          - link "21 Mukhi Rudraksha 21 Mukhi Rudraksha" [ref=f2e730] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/21-mukhi-rudraksha.html
+            - img "21 Mukhi Rudraksha" [ref=f2e731]
+            - generic [ref=f2e732]: 21 Mukhi Rudraksha
+          - link "Diamond Studded Jewelry Diamond Studded Jewelry" [ref=f2e733] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/diamond-studded-jewelry.html
+            - img "Diamond Studded Jewelry" [ref=f2e734]
+            - generic [ref=f2e735]: Diamond Studded Jewelry
+          - link "Blue Sapphire Blue Sapphire" [ref=f2e736] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/blue-sapphire.html
+            - img "Blue Sapphire" [ref=f2e737]
+            - generic [ref=f2e738]: Blue Sapphire
+          - link "Blue Topaz Blue Topaz" [ref=f2e739] [cursor=pointer]:
+            - /url: https://dir.indiamart.com/impcat/blue-topaz.html
+            - img "Blue Topaz" [ref=f2e740]
+            - generic [ref=f2e741]: Blue Topaz
+      - link "View All Categories" [ref=f2e742] [cursor=pointer]:
+        - /url: https://dir.indiamart.com/
+    - generic [ref=f2e749]:
+      - generic [ref=f2e750]: Get Quotes from Verified Suppliers
+      - textbox "Enter Product / Service name" [ref=f2e753]
+      - generic [ref=f2e756]:
+        - generic [ref=f2e757]: "+91"
+        - textbox "Enter your mobile" [ref=f2e758]
+      - button "Submit Requirement" [ref=f2e760] [cursor=pointer]
+    - generic [ref=f2e764]:
+      - generic [ref=f2e765]:
+        - link [ref=f2e766] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/
+          - heading "IndiaMART in Hindi" [level=2] [ref=f2e767]
+        - generic [ref=f2e768]: हिन्दी में उपलब्ध
+      - generic [ref=f2e769]:
+        - link "प्रिंटेड छाता प्रिंटेड छाता" [ref=f2e770] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/प्रिंटेड-छाता.html
+          - img "प्रिंटेड छाता" [ref=f2e772]
+          - generic [ref=f2e773]: प्रिंटेड छाता
+        - link "साइकिल साइकिल" [ref=f2e774] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/bicycles.html
+          - img "साइकिल" [ref=f2e776]
+          - generic [ref=f2e777]: साइकिल
+        - link "सूती लिनन कपड़ा सूती लिनन कपड़ा" [ref=f2e778] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/सूती-लिनन-कपड़ा.html
+          - img "सूती लिनन कपड़ा" [ref=f2e780]
+          - generic [ref=f2e781]: सूती लिनन कपड़ा
+        - link "कढ़ाई वाला महिलाओं का सूट कढ़ाई वाला महिलाओं का सूट" [ref=f2e782] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/कढ़ाई-वाला-महिलाओं-का-सूट.html
+          - img "कढ़ाई वाला महिलाओं का सूट" [ref=f2e784]
+          - generic [ref=f2e785]: कढ़ाई वाला महिलाओं का सूट
+        - link "डिज़ाइनर साड़ियाँ डिज़ाइनर साड़ियाँ" [ref=f2e786] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/designer-sarees/
+          - img "डिज़ाइनर साड़ियाँ" [ref=f2e788]
+          - generic [ref=f2e789]: डिज़ाइनर साड़ियाँ
+        - link "पुरुषों की शर्ट पुरुषों की शर्ट" [ref=f2e790] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/पुरुषों-की-शर्ट.html
+          - img "पुरुषों की शर्ट" [ref=f2e792]
+          - generic [ref=f2e793]: पुरुषों की शर्ट
+        - link "लड़कियों के डिज़ाइनर टॉप लड़कियों के डिज़ाइनर टॉप" [ref=f2e794] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/girls-designer-tops/
+          - img "लड़कियों के डिज़ाइनर टॉप" [ref=f2e796]
+          - generic [ref=f2e797]: लड़कियों के डिज़ाइनर टॉप
+        - link "नीली डेनिम जीन्स नीली डेनिम जीन्स" [ref=f2e798] [cursor=pointer]:
+          - /url: https://hindi.indiamart.com/impcat/नीली-डेनिम-जीन्स.html
+          - img "नीली डेनिम जीन्स" [ref=f2e800]
+          - generic [ref=f2e801]: नीली डेनिम जीन्स
+    - link "भारत का अपना B2B मार्केटप्लेस लाखों थोक विक्रेताओं से सीधे खरीदें — सही दाम पर। अब हिन्दी में व्यापार करना हुआ और भी आसान। 21 करोड़+ खरीदार 84 लाख+ विक्रेता 12 करोड़+ उत्पाद हिन्दी में उपलब्ध" [ref=f2e803] [cursor=pointer]:
+      - /url: https://hindi.indiamart.com/
+      - generic [ref=f2e804]:
+        - heading "भारत का अपना B2B मार्केटप्लेस" [level=2] [ref=f2e805]
+        - paragraph [ref=f2e806]: लाखों थोक विक्रेताओं से सीधे खरीदें — सही दाम पर। अब हिन्दी में व्यापार करना हुआ और भी आसान।
+        - generic [ref=f2e807]:
+          - generic [ref=f2e808]:
+            - generic [ref=f2e809]: 21 करोड़+
+            - generic [ref=f2e810]: खरीदार
+          - generic [ref=f2e812]:
+            - generic [ref=f2e813]: 84 लाख+
+            - generic [ref=f2e814]: विक्रेता
+          - generic [ref=f2e816]:
+            - generic [ref=f2e817]: 12 करोड़+
+            - generic [ref=f2e818]: उत्पाद
+      - generic [ref=f2e819]: हिन्दी में उपलब्ध
+    - region "Find Suppliers from Top Cities" [ref=f2e820]:
+      - heading "Find Suppliers from Top Cities" [level=2] [ref=f2e825]
+      - generic [ref=f2e826]:
+        - link "Delhi" [ref=f2e827] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/delhi/
+        - link "Bengaluru" [ref=f2e830] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/bengaluru/
+        - link "Chennai" [ref=f2e833] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/chennai/
+        - link "Mumbai" [ref=f2e836] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/mumbai/
+        - link "Ahmedabad" [ref=f2e839] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/ahmedabad/
+        - link "Kolkata" [ref=f2e842] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/kolkata/
+        - link "Pune" [ref=f2e845] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/pune/
+        - link "Surat" [ref=f2e848] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/surat/
+        - link "Jaipur" [ref=f2e851] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/jaipur/
+        - link "Hyderabad" [ref=f2e854] [cursor=pointer]:
+          - /url: https://dir.indiamart.com/hyderabad/
+  - contentinfo [ref=f2e859]:
+    - generic [ref=f2e860]:
+      - generic [ref=f2e861]:
+        - generic [ref=f2e862]:
+          - link "IndiaMART" [ref=f2e864] [cursor=pointer]:
+            - /url: https://www.indiamart.com/
+          - paragraph [ref=f2e865]: India's largest online B2B marketplace,connecting buyers with suppliers.
+          - generic [ref=f2e866]:
+            - link "096-9696-9696" [ref=f2e867] [cursor=pointer]:
+              - /url: tel:09696969696
+            - link "customercare@indiamart.com" [ref=f2e871] [cursor=pointer]:
+              - /url: mailto:customercare@indiamart.com
+          - generic [ref=f2e875]:
+            - link "Facebook" [ref=f2e876] [cursor=pointer]:
+              - /url: https://www.facebook.com/IndiaMART
+            - link "X" [ref=f2e879] [cursor=pointer]:
+              - /url: https://twitter.com/IndiaMART
+            - link "LinkedIn" [ref=f2e882] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/indiamart-intermesh-limited/
+            - link "YouTube" [ref=f2e885] [cursor=pointer]:
+              - /url: https://www.youtube.com/user/IndiaMART
+            - link "Instagram" [ref=f2e888] [cursor=pointer]:
+              - /url: https://www.instagram.com/indiamart/
+        - generic [ref=f2e891]:
+          - generic [ref=f2e892]:
+            - heading "Company" [level=4] [ref=f2e893]
+            - list [ref=f2e894]:
+              - listitem [ref=f2e895]:
+                - link "About Us" [ref=f2e896] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/about-us/
+              - listitem [ref=f2e897]:
+                - link "IndiaMART Export" [ref=f2e898] [cursor=pointer]:
+                  - /url: https://export.indiamart.com
+              - listitem [ref=f2e899]:
+                - link "Join Sales" [ref=f2e900] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/partner-with-us/
+              - listitem [ref=f2e901]:
+                - link "Success Stories" [ref=f2e902] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/category/success-stories/
+              - listitem [ref=f2e903]:
+                - link "Press Section" [ref=f2e904] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/category/indiamart-in-news/press-releases/
+              - listitem [ref=f2e905]:
+                - link "Advertise with Us" [ref=f2e906] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/advertise-with-indiamart/
+              - listitem [ref=f2e907]:
+                - link "Jobs & Careers" [ref=f2e908] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/careers-at-im/
+          - generic [ref=f2e909]:
+            - heading "Help & Support" [level=4] [ref=f2e910]
+            - list [ref=f2e911]:
+              - listitem [ref=f2e912]:
+                - link "Help" [ref=f2e913] [cursor=pointer]:
+                  - /url: https://help.indiamart.com/
+              - listitem [ref=f2e914]:
+                - link "Feedback" [ref=f2e915] [cursor=pointer]:
+                  - /url: https://help.indiamart.com/user-feedback/
+              - listitem [ref=f2e916]:
+                - link "Complaints" [ref=f2e917] [cursor=pointer]:
+                  - /url: https://help.indiamart.com/complaint-registration/
+              - listitem [ref=f2e918]:
+                - link "Customer Care" [ref=f2e919] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/customer-care-services/
+              - listitem [ref=f2e920]:
+                - link "Contact Us" [ref=f2e921] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/branch-offices/
+          - generic [ref=f2e922]:
+            - heading "Suppliers Tool Kit" [level=4] [ref=f2e923]
+            - list [ref=f2e924]:
+              - listitem [ref=f2e925]:
+                - link "Sell on IndiaMART" [ref=f2e926] [cursor=pointer]:
+                  - /url: https://seller.indiamart.com/
+              - listitem [ref=f2e927]:
+                - link "Latest BuyLead" [ref=f2e928] [cursor=pointer]:
+                  - /url: https://seller.indiamart.com/bltxn/?pref=recent
+              - listitem [ref=f2e929]:
+                - link "Learning Centre" [ref=f2e930] [cursor=pointer]:
+                  - /url: https://corporate.indiamart.com/quick-learn/
+              - listitem [ref=f2e931]:
+                - link "Ship With IndiaMART" [ref=f2e932] [cursor=pointer]:
+                  - /url: https://shipwith.indiamart.com/?afl_id=-907
+          - generic [ref=f2e933]:
+            - generic [ref=f2e934]:
+              - heading "Buyers Tool Kit" [level=4] [ref=f2e935]
+              - list [ref=f2e936]:
+                - listitem [ref=f2e937]:
+                  - link "Post Your Requirement" [ref=f2e938] [cursor=pointer]:
+                    - /url: https://buyer.indiamart.com/buyertools/postbl?modid=PRODDTL
+                - listitem [ref=f2e939]:
+                  - link "Products You Buy" [ref=f2e940] [cursor=pointer]:
+                    - /url: https://buyer.indiamart.com/buyertools/myproductbuy?modid=PRODDTL
+                - listitem [ref=f2e941]:
+                  - link "Search Products & Suppliers" [ref=f2e942] [cursor=pointer]:
+                    - /url: https://www.indiamart.com/search.html
+            - generic [ref=f2e943]:
+              - heading "Accounting Solutions" [level=4] [ref=f2e944]
+              - list [ref=f2e945]:
+                - listitem [ref=f2e946]:
+                  - link "Accounting Software" [ref=f2e947] [cursor=pointer]:
+                    - /url: https://busy.in/accounting-software/
+                - listitem [ref=f2e948]:
+                  - link "Tally on Mobile" [ref=f2e949] [cursor=pointer]:
+                    - /url: https://www.livekeeping.com/
+                - listitem [ref=f2e950]:
+                  - link "GST e-Invoice" [ref=f2e951] [cursor=pointer]:
+                    - /url: https://busy.in/accounting-software/e-invoice/
+          - generic [ref=f2e952]:
+            - heading "Also From IndiaMART" [level=4] [ref=f2e953]
+            - list [ref=f2e954]:
+              - listitem [ref=f2e955]:
+                - link "IndiaMART Lens" [ref=f2e956] [cursor=pointer]:
+                  - /url: https://lens.indiamart.com/
+              - listitem [ref=f2e957]:
+                - link "Hindi" [ref=f2e958] [cursor=pointer]:
+                  - /url: https://hindi.indiamart.com/
+              - listitem [ref=f2e959]:
+                - link "Flips" [ref=f2e960] [cursor=pointer]:
+                  - /url: https://flips.indiamart.com/
+      - generic [ref=f2e961]:
+        - generic [ref=f2e962]: Go Mobile
+        - generic [ref=f2e963]:
+          - link [ref=f2e964] [cursor=pointer]:
+            - /url: https://itunes.apple.com/us/app/indiamart-buy-sell-products/id668561641?mt=8
+            - generic [ref=f2e966]:
+              - paragraph [ref=f2e967]: Download on
+              - paragraph [ref=f2e968]: iOS App
+          - link [ref=f2e969] [cursor=pointer]:
+            - /url: https://play.google.com/store/apps/details?id=com.indiamart.m
+            - generic [ref=f2e971]:
+              - paragraph [ref=f2e972]: Get it on
+              - paragraph [ref=f2e973]: Android App
+          - link [ref=f2e974] [cursor=pointer]:
+            - /url: https://m.indiamart.com/
+            - generic [ref=f2e976]:
+              - paragraph [ref=f2e977]: Visit
+              - paragraph [ref=f2e978]: Mobile Site
+      - generic [ref=f2e980]:
+        - generic [ref=f2e981]:
+          - link "Terms of Use" [ref=f2e982] [cursor=pointer]:
+            - /url: https://www.indiamart.com/terms-of-use.html
+          - link "Privacy Policy" [ref=f2e983] [cursor=pointer]:
+            - /url: https://www.indiamart.com/privacy-policy.html
+        - paragraph [ref=f2e984]: © 1996-2026 IndiaMART InterMESH Ltd. All rights reserved.
+  - list [ref=f2e989]:
+    - listitem [ref=f2e990] [cursor=pointer]:
+      - generic [ref=f2e991]: Lucknow, Uttar Pradesh

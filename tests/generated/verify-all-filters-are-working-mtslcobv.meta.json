@@ -1,0 +1,156 @@
+{
+  "id": "verify-all-filters-are-working-mtslcobv",
+  "title": "Verify All Filters Are Working on Agreements Page",
+  "url": "https://admin.ztaygo.com/agreements",
+  "prompt": "verify all filters are working",
+  "context": "ztaygo@admin.com\nZtaygo@4321",
+  "testTypes": [
+    "happy-path"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "text": "Navigate to agreements page at https://admin.ztaygo.com/agreements",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s2",
+      "text": "Check if login input is visible",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s3",
+      "text": "If login needed: fill email and password fields with test credentials",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s4",
+      "text": "If login needed: click login button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s5",
+      "text": "Wait for page load after login",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s6",
+      "text": "If login was required: navigate to agreements page again",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s7",
+      "text": "Wait for agreements page to fully load",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s8",
+      "text": "Verify search input with placeholder 'Search' is visible",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s9",
+      "text": "If status filter exists: click status filter combobox",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s10",
+      "text": "Wait for page load after status filter click",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s11",
+      "text": "Verify table body rows count is greater than or equal to 0",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s12",
+      "text": "Fill search input with 'test'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s13",
+      "text": "Wait for page load after search input",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s14",
+      "text": "Verify search results row count is greater than or equal to 0",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s15",
+      "text": "If date range picker button exists: click the date range button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s16",
+      "text": "Wait for page load after date range click",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s17",
+      "text": "Verify date filtered results row count is greater than or equal to 0",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s18",
+      "text": "If type filter combobox exists: click the type filter",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s19",
+      "text": "Wait for page load after type filter click",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s20",
+      "text": "Verify type filtered results row count is greater than or equal to 0",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s21",
+      "text": "Verify table element is visible",
+      "type": "assertion",
+      "resolved": true
+    },
+    {
+      "id": "s22",
+      "text": "Verify search input is still visible",
+      "type": "assertion",
+      "resolved": true
+    }
+  ],
+  "file": "tests/generated/verify-all-filters-are-working-mtslcobv.spec.ts",
+  "costUsd": 0.4656211,
+  "durationMs": 263000,
+  "tokens": {
+    "input": 428,
+    "output": 17220,
+    "cacheRead": 1906721,
+    "cacheCreation": 91710
+  },
+  "totalTokens": 2016079,
+  "apiCostUsd": 0.3918376,
+  "createdAt": "2026-09-08T11:35:40.177Z"
+}

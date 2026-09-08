@@ -1,0 +1,23 @@
+{
+  "name": "add-to-cart",
+  "description": "Add a single product to the cart, adapting to whatever pre-purchase configuration that specific product requires (size, color, plan, quantity, or none at all). One manifest, any product.",
+  "steps": [
+    {
+      "id": "open-product",
+      "intent": "Navigate to the given product page and note the current cart count shown in the site header as the baseline."
+    },
+    {
+      "id": "configure-product",
+      "intent": "Inspect the product page for anything that must be chosen before the product can be purchased - a size, color, variant, or plan selector, radio group, dropdown, or swatch buttons. If any such control is present and required (e.g. the Add to Cart button is disabled until it's set), choose one valid/available option for each one. If the product has no such requirement, do nothing and move on.",
+      "optional": true
+    },
+    {
+      "id": "add-to-cart",
+      "intent": "Click the control that adds this product to the cart (commonly labeled 'Add to Cart' or similar). If it's disabled, first satisfy whatever is blocking it per the previous step, then click it."
+    },
+    {
+      "id": "verify-confirmation",
+      "intent": "Verify the page shows confirmation that the item was added (e.g. a toast, inline message, or similar) and that the cart count shown in the header increased by exactly 1 compared to the baseline noted in the first step."
+    }
+  ]
+}

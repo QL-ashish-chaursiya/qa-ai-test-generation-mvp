@@ -1,0 +1,542 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e4]:
+    - banner [ref=f4e170]:
+      - link [ref=f4e171] [cursor=pointer]:
+        - /url: https://www.indiamart.com/
+        - img "IndiaMART" [ref=f4e172]
+      - generic [ref=f4e173]:
+        - button "Lucknow" [ref=f4e175] [cursor=pointer]
+        - generic [ref=f4e183]:
+          - textbox "Search product or service" [ref=f4e184]:
+            - /placeholder: Enter product / service to search
+            - text: Notebooks
+          - link "Search by Image" [ref=f4e185] [cursor=pointer]:
+            - /url: https://lens.indiamart.com/
+          - button [ref=f4e187] [cursor=pointer]
+      - complementary [ref=f4e189]:
+        - link "Get Best Price" [ref=f4e190] [cursor=pointer]:
+          - /url: "#"
+        - navigation [ref=f4e191]:
+          - link "Exporters" [ref=f4e193] [cursor=pointer]:
+            - /url: https://export.indiamart.com/?VElogo=1
+          - link "Sell" [ref=f4e197] [cursor=pointer]:
+            - /url: https://seller.indiamart.com/
+          - link "Help" [ref=f4e201] [cursor=pointer]:
+            - /url: https://help.indiamart.com/
+          - button "Messages" [ref=f4e205] [cursor=pointer]
+          - button "Sign In" [ref=f4e210] [cursor=pointer]
+    - generic [ref=f4e50]:
+      - generic [ref=f4e52]:
+        - generic [ref=f4e53]: Notebook near Lucknow
+        - link "Advanced Search" [ref=f4e58] [cursor=pointer]:
+          - /url: https://www.indiamart.com/search.html
+      - generic [ref=f4e59]:
+        - generic [ref=f4e60]:
+          - button "Open filters" [ref=f4e61] [cursor=pointer]
+          - button "Near Me" [ref=f4e67] [cursor=pointer]
+          - button "Lucknow" [ref=f4e70] [cursor=pointer]
+          - button "Noida" [ref=f4e77] [cursor=pointer]
+          - button "Gurugram" [ref=f4e80] [cursor=pointer]
+          - button "Price Below ₹35" [ref=f4e83] [cursor=pointer]:
+            - generic [ref=f4e84]:
+              - generic [ref=f4e85]: Price
+              - text: Below ₹35
+          - button "Number of Pages 192 Pages" [ref=f4e89] [cursor=pointer]:
+            - generic [ref=f4e90]:
+              - generic [ref=f4e91]: Number of Pages
+              - text: 192 Pages
+          - button "Size Long Book (17x27cm)" [ref=f4e95] [cursor=pointer]:
+            - generic [ref=f4e96]:
+              - generic [ref=f4e97]: Size
+              - text: Long Book (17x27cm)
+          - button "Binding Type Hard Bound" [ref=f4e101] [cursor=pointer]:
+            - generic [ref=f4e102]:
+              - generic [ref=f4e103]: Binding Type
+              - text: Hard Bound
+          - button "Paper GSM 70 GSM" [ref=f4e107] [cursor=pointer]:
+            - generic [ref=f4e108]:
+              - generic [ref=f4e109]: Paper GSM
+              - text: 70 GSM
+          - button "Ruling Type Dotted" [ref=f4e113] [cursor=pointer]:
+            - generic [ref=f4e114]:
+              - generic [ref=f4e115]: Ruling Type
+              - text: Dotted
+          - button "Cover Type Hard Cover" [ref=f4e119] [cursor=pointer]:
+            - generic [ref=f4e120]:
+              - generic [ref=f4e121]: Cover Type
+              - text: Hard Cover
+          - button "Business Type Manufacturer" [ref=f4e125] [cursor=pointer]:
+            - generic [ref=f4e126]:
+              - generic [ref=f4e127]: Business Type
+              - text: Manufacturer
+          - button "Business Credentials Annual turnover ₹5 Cr+" [ref=f4e131] [cursor=pointer]:
+            - generic [ref=f4e132]:
+              - generic [ref=f4e133]: Business Credentials
+              - text: Annual turnover ₹5 Cr+
+        - generic [ref=f4e138]:
+          - button [ref=f4e139] [cursor=pointer]:
+            - img "Notebook" [ref=f4e140]
+            - text: Notebook
+          - button [ref=f4e141] [cursor=pointer]:
+            - img "Leather Notebooks" [ref=f4e142]
+            - text: Leather Notebooks
+          - button [ref=f4e143] [cursor=pointer]:
+            - img "Embroidered Notebook" [ref=f4e144]
+            - text: Embroidered Notebook
+          - button [ref=f4e145] [cursor=pointer]:
+            - img "Spiral Notebooks" [ref=f4e146]
+            - text: Spiral Notebooks
+          - button [ref=f4e147] [cursor=pointer]:
+            - img "Writing Notebook" [ref=f4e148]
+            - text: Writing Notebook
+          - button [ref=f4e149] [cursor=pointer]:
+            - img "Embossment Notebook" [ref=f4e150]
+            - text: Embossment Notebook
+          - button [ref=f4e151] [cursor=pointer]:
+            - img "Fabric Cover Notebook" [ref=f4e152]
+            - text: Fabric Cover Notebook
+          - button [ref=f4e153] [cursor=pointer]:
+            - img "Stone Paper Notebook" [ref=f4e154]
+            - text: Stone Paper Notebook
+          - button [ref=f4e155] [cursor=pointer]:
+            - img "Plantable Notepad" [ref=f4e156]
+            - text: Plantable Notepad
+          - button [ref=f4e157] [cursor=pointer]:
+            - img "Soft Cover Notebook" [ref=f4e158]
+            - text: Soft Cover Notebook
+          - button [ref=f4e159] [cursor=pointer]:
+            - img "Classmate Notebook" [ref=f4e160]
+            - text: Classmate Notebook
+          - button [ref=f4e161] [cursor=pointer]:
+            - img "Sundaram Notebook" [ref=f4e162]
+            - text: Sundaram Notebook
+          - button [ref=f4e163] [cursor=pointer]:
+            - img "Bilt Notebook" [ref=f4e164]
+            - text: Bilt Notebook
+          - button [ref=f4e165] [cursor=pointer]:
+            - img "Navneet Notebook" [ref=f4e166]
+            - text: Navneet Notebook
+          - button [ref=f4e167] [cursor=pointer]:
+            - img "A5 Notebook" [ref=f4e168]
+            - text: A5 Notebook
+      - generic [ref=f4e215]:
+        - region "Product listings" [ref=f4e218]:
+          - article [ref=f4e219]:
+            - generic [ref=f4e220]:
+              - figure [ref=f4e221]:
+                - img "Notebook"
+                - button "Notebook" [ref=f4e222] [cursor=pointer]
+                - button "Next product variant" [ref=f4e223] [cursor=pointer]
+                - button "2 more images" [ref=f4e225] [cursor=pointer]: "+2"
+              - generic [ref=f4e226]:
+                - button "Show product variant 1" [ref=f4e227] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e228] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e229] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e230] [cursor=pointer]
+              - heading [level=3] [ref=f4e231]:
+                - link "Notebook" [ref=f4e232] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/notebook-2856634430697.html?pos=1&kwd=notebook&tags=rk:A|plc:1|dt:0|db:01|prc:1|dtp:p|pfs:1|sv:T|rsf:gd|prv:120|ri:T_A_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e233]:
+                - button "₹ 120" [ref=f4e234] [cursor=pointer]
+                - generic [ref=f4e235]: /Piece
+              - button "Contact Supplier" [ref=f4e236] [cursor=pointer]
+            - generic [ref=f4e239]:
+              - generic [ref=f4e240]:
+                - link "Maheshwari & Sons" [ref=f4e241] [cursor=pointer]:
+                  - /url: https://www.maheshwariprinters.com/?pos=1&kwd=notebook&tags=rk:A|plc:1|dt:0|db:01|prc:1|dtp:p|pfs:1|sv:T|rsf:gd|prv:120|ri:T_A_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+                - paragraph [ref=f4e242]: Lucknow · 12 yrs
+                - link "TrustSEAL verified" [ref=f4e243] [cursor=pointer]:
+                  - /url: https://trustseal.indiamart.com/members/maheshwari-sons-lucknow
+                  - text: TrustSEAL
+                - generic [ref=f4e245]:
+                  - generic [ref=f4e246]: 79% Response Rate
+                  - generic [ref=f4e247]:
+                    - generic "3.8 out of 5 stars" [ref=f4e248]:
+                      - generic [ref=f4e249]:
+                        - generic [ref=f4e250]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e251]: "3.8"
+                    - generic [ref=f4e252]: (78)
+              - button "Call Now" [ref=f4e253] [cursor=pointer]
+          - article [ref=f4e256]:
+            - generic [ref=f4e257]:
+              - figure [ref=f4e258]:
+                - img "Premium Orange Hardcover Notebook With Matching Pen"
+                - button "Premium Orange Hardcover Notebook With Matching Pen" [ref=f4e259] [cursor=pointer]
+              - heading [level=3] [ref=f4e261]:
+                - link "Premium Orange Hardcover Notebook With Matching Pen" [ref=f4e262] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/premium-orange-hardcover-notebook-with-matching-pen-2859681526373.html?pos=2&kwd=notebook&tags=rk:A|plc:1|dt:0|db:01|prc:1|dtp:p||sv:M|rsf:gd|prv:155|ri:M_A_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e263]:
+                - button "₹ 155" [ref=f4e264] [cursor=pointer]
+                - generic [ref=f4e265]: /Piece
+              - button "Contact Supplier" [ref=f4e266] [cursor=pointer]
+            - generic [ref=f4e269]:
+              - generic [ref=f4e270]:
+                - link "K.E. Groups" [ref=f4e271] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/ke-groups-lucknow/search.html?ss=Notebooks&pid=2859681526373&src=search&pos=2&kwd=notebook&tags=rk%3AA%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7C%7Csv%3AM%7Crsf%3Agd%7Cprv%3A155%7Cri%3AM_A_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e272]: Lucknow · This month
+              - button "Call Now" [ref=f4e274] [cursor=pointer]
+          - article [ref=f4e277]:
+            - generic [ref=f4e278]:
+              - figure [ref=f4e279]:
+                - img "Staple Bound Ganesh School Notebook, 160 Pages, Short Book (15x19cm)"
+                - button "Staple Bound Ganesh School Notebook, 160 Pages, Short Book (15x19cm)" [ref=f4e280] [cursor=pointer]
+                - button "Next product variant" [ref=f4e281] [cursor=pointer]
+                - button "2 more images" [ref=f4e283] [cursor=pointer]: "+2"
+              - generic [ref=f4e284]:
+                - button "Show product variant 1" [ref=f4e285] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e286] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e287] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e288] [cursor=pointer]
+              - heading [level=3] [ref=f4e289]:
+                - link "Staple Bound Ganesh School Notebook, 160 Pages, Short Book (15x19cm)" [ref=f4e290] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/ganesh-school-notebook-2859228414955.html?pos=3&kwd=notebook&tags=rk:B|plc:1|dt:0|db:01|prc:1|dtp:p|pfs:1|sv:M|rsf:gd|prv:30|ri:M_B_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e291]:
+                - button "₹ 30" [ref=f4e292] [cursor=pointer]
+                - generic [ref=f4e293]: /Piece
+              - button "Contact Supplier" [ref=f4e294] [cursor=pointer]
+            - generic [ref=f4e297]:
+              - generic [ref=f4e298]:
+                - link "Ganesh Paper Agencies" [ref=f4e299] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/ganesh-paper-agencies/search.html?ss=Notebooks&pid=2859228414955&src=search&pos=3&kwd=notebook&tags=rk%3AB%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7Cpfs%3A1%7Csv%3AM%7Crsf%3Agd%7Cprv%3A30%7Cri%3AM_B_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e300]: Lucknow · 11 yrs
+                - generic [ref=f4e301]:
+                  - generic [ref=f4e302]: 93% Response Rate
+                  - generic [ref=f4e303]:
+                    - generic "4.2 out of 5 stars" [ref=f4e304]:
+                      - generic [ref=f4e305]:
+                        - generic [ref=f4e306]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e307]: "4.2"
+                    - generic [ref=f4e308]: (38)
+              - button "Call Now" [ref=f4e309] [cursor=pointer]
+          - article [ref=f4e312]:
+            - generic [ref=f4e313]:
+              - figure [ref=f4e314]:
+                - img "Excellent Paper A4 Size Notebook"
+                - button "Excellent Paper A4 Size Notebook" [ref=f4e315] [cursor=pointer]
+                - button "Next product variant" [ref=f4e316] [cursor=pointer]
+                - button "3 more images" [ref=f4e318] [cursor=pointer]: "+3"
+              - generic [ref=f4e319]:
+                - button "Show product variant 1" [ref=f4e320] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e321] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e322] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e323] [cursor=pointer]
+              - heading [level=3] [ref=f4e324]:
+                - link "Excellent Paper A4 Size Notebook" [ref=f4e325] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/excellent-paper-a4-size-notebook-2855666265391.html?pos=4&kwd=notebook&tags=rk:B|plc:1|dt:0|db:01|prc:1|dtp:p||sv:M|rsf:gd|prv:17.50|ri:M_B_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e326]:
+                - button "₹ 17.5" [ref=f4e327] [cursor=pointer]
+                - generic [ref=f4e328]: /Piece
+              - button "Contact Supplier" [ref=f4e329] [cursor=pointer]
+            - generic [ref=f4e332]:
+              - generic [ref=f4e333]:
+                - link "Vasu Traders" [ref=f4e334] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/vasutraders-lucknow/search.html?ss=Notebooks&pid=2855666265391&src=search&pos=4&kwd=notebook&tags=rk%3AB%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7C%7Csv%3AM%7Crsf%3Agd%7Cprv%3A17.50%7Cri%3AM_B_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e335]: Lucknow · 9 yrs
+                - generic [ref=f4e336]: 76% Response Rate
+              - button "Call Now" [ref=f4e338] [cursor=pointer]
+          - article [ref=f4e341]:
+            - generic [ref=f4e342]:
+              - figure [ref=f4e343]:
+                - img "Notebooks"
+                - button "Notebooks" [ref=f4e344] [cursor=pointer]
+                - button "Next product variant" [ref=f4e345] [cursor=pointer]
+                - button "3 more images" [ref=f4e347] [cursor=pointer]: "+3"
+              - generic [ref=f4e348]:
+                - button "Show product variant 1" [ref=f4e349] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e350] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e351] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e352] [cursor=pointer]
+              - heading [level=3] [ref=f4e353]:
+                - link "Notebooks" [ref=f4e354] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/notebooks-2859498517633.html?pos=5&kwd=notebook&tags=rk:B|plc:1|dt:0|db:01|prc:1|dtp:p|pfs:1|sv:M|rsf:gd|prv:140|ri:M_B_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e355]:
+                - button "₹ 140" [ref=f4e356] [cursor=pointer]
+                - generic [ref=f4e357]: /Piece
+              - button "Contact Supplier" [ref=f4e358] [cursor=pointer]
+            - generic [ref=f4e361]:
+              - generic [ref=f4e362]:
+                - link "Apollo Traders" [ref=f4e363] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/apollotraders-lucknow/search.html?ss=Notebooks&pid=2859498517633&src=search&pos=5&kwd=notebook&tags=rk%3AB%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7Cpfs%3A1%7Csv%3AM%7Crsf%3Agd%7Cprv%3A140%7Cri%3AM_B_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e364]: Lucknow · 1 yr
+                - generic [ref=f4e365]:
+                  - generic [ref=f4e366]: 86% Response Rate
+                  - generic [ref=f4e367]:
+                    - generic "3.4 out of 5 stars" [ref=f4e368]:
+                      - generic [ref=f4e369]:
+                        - generic [ref=f4e370]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e371]: "3.4"
+                    - generic [ref=f4e372]: (18)
+              - button "Call Now" [ref=f4e373] [cursor=pointer]
+          - generic [ref=f4e379]:
+            - generic [ref=f4e380]: Tell us what you need, and we'll help you get quotes
+            - generic [ref=f4e382]:
+              - generic: I want quotes for*
+              - textbox "Enter Product / Service name" [ref=f4e383]: notebook
+            - generic [ref=f4e384]:
+              - generic [ref=f4e385]: Mobile Number*
+              - generic [ref=f4e386]:
+                - generic [ref=f4e387]:
+                  - generic [ref=f4e388]: "+91"
+                  - textbox "Enter your mobile" [ref=f4e389]
+                - generic [ref=f4e390]: Supplier will contact you on this number
+            - button "Submit Requirement" [ref=f4e392] [cursor=pointer]
+          - article [ref=f4e393]:
+            - generic [ref=f4e394]:
+              - figure [ref=f4e395]:
+                - generic: Star Supplier
+                - img "Note Book Khata"
+                - button "Note Book Khata" [ref=f4e396] [cursor=pointer]
+                - button "Next product variant" [ref=f4e397] [cursor=pointer]
+                - button "2 more images" [ref=f4e399] [cursor=pointer]: "+2"
+              - generic [ref=f4e400]:
+                - button "Show product variant 1" [ref=f4e401] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e402] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e403] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e404] [cursor=pointer]
+              - heading [level=3] [ref=f4e405]:
+                - link "Note Book Khata" [ref=f4e406] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/note-book-khata-24185849973.html?pos=6&kwd=notebook&tags=rk:A|plc:1|dt:430|db:09|prc:1|dtp:p|pfs:1|sv:S|rsf:gl|prv:27|ri:S_A_G250_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e407]:
+                - button "₹ 27" [ref=f4e408] [cursor=pointer]
+                - generic [ref=f4e409]: /Piece
+              - button "Contact Supplier" [ref=f4e410] [cursor=pointer]
+            - generic [ref=f4e413]:
+              - generic [ref=f4e414]:
+                - link "CTC Book World Private Limited" [ref=f4e415] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/ctc-book-world/search.html?ss=Notebooks&pid=24185849973&src=search&pos=6&kwd=notebook&tags=rk%3AA%7Cplc%3A1%7Cdt%3A430%7Cdb%3A09%7Cprc%3A1%7Cdtp%3Ap%7Cpfs%3A1%7Csv%3AS%7Crsf%3Agl%7Cprv%3A27%7Cri%3AS_A_G250_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e416]: New Delhi · 5 yrs
+                - link "TrustSEAL verified" [ref=f4e417] [cursor=pointer]:
+                  - /url: https://trustseal.indiamart.com/members/ctc-book-world
+                  - text: TrustSEAL
+                - generic [ref=f4e419]:
+                  - generic [ref=f4e420]: 80% Response Rate
+                  - generic [ref=f4e421]:
+                    - generic "4.4 out of 5 stars" [ref=f4e422]:
+                      - generic [ref=f4e423]:
+                        - generic [ref=f4e424]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e425]: "4.4"
+                    - generic [ref=f4e426]: (349)
+              - button "Call Now" [ref=f4e427] [cursor=pointer]
+          - article [ref=f4e430]:
+            - generic [ref=f4e431]:
+              - figure [ref=f4e432]:
+                - generic: Star Supplier
+                - img "Hawamahal A6 Notebook, 120 Pages"
+                - button "Hawamahal A6 Notebook, 120 Pages" [ref=f4e433] [cursor=pointer]
+                - button "Next product variant" [ref=f4e434] [cursor=pointer]
+                - button "3 more images" [ref=f4e436] [cursor=pointer]: "+3"
+              - generic [ref=f4e437]:
+                - button "Show product variant 1" [ref=f4e438] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e439] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e440] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e441] [cursor=pointer]
+              - heading [level=3] [ref=f4e442]:
+                - link "Hawamahal A6 Notebook, 120 Pages" [ref=f4e443] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/hawamahal-a6-notebook-2858845680433.html?pos=7&kwd=notebook&tags=rk:A|plc:1|dt:511|db:11|prc:1|dtp:p|pfs:1|sv:S|rsf:gl|prv:13|ri:S_A_G250_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e444]:
+                - button "₹ 13" [ref=f4e445] [cursor=pointer]
+                - generic [ref=f4e446]: /Piece
+              - button "Contact Supplier" [ref=f4e447] [cursor=pointer]
+            - generic [ref=f4e450]:
+              - generic [ref=f4e451]:
+                - link "Bharat Copy Udyog" [ref=f4e452] [cursor=pointer]:
+                  - /url: https://www.bharatcopyudhyog.com/?pos=7&kwd=notebook&tags=rk:A|plc:1|dt:511|db:11|prc:1|dtp:p|pfs:1|sv:S|rsf:gl|prv:13|ri:S_A_G250_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+                - paragraph [ref=f4e453]: Jaipur · 5 yrs
+                - link "TrustSEAL verified" [ref=f4e454] [cursor=pointer]:
+                  - /url: https://trustseal.indiamart.com/members/bharatcopy-udyog-jaipur
+                  - text: TrustSEAL
+                - generic [ref=f4e456]:
+                  - generic [ref=f4e457]: 78% Response Rate
+                  - generic [ref=f4e458]:
+                    - generic "4.1 out of 5 stars" [ref=f4e459]:
+                      - generic [ref=f4e460]:
+                        - generic [ref=f4e461]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e462]: "4.1"
+                    - generic [ref=f4e463]: (202)
+              - button "Call Now" [ref=f4e464] [cursor=pointer]
+          - article [ref=f4e467]:
+            - generic [ref=f4e468]:
+              - figure [ref=f4e469]:
+                - img "College Notebook Registers"
+                - button "College Notebook Registers" [ref=f4e470] [cursor=pointer]
+                - button "Next product variant" [ref=f4e471] [cursor=pointer]
+              - generic [ref=f4e473]:
+                - button "Show product variant 1" [ref=f4e474] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e475] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e476] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e477] [cursor=pointer]
+              - heading [level=3] [ref=f4e478]:
+                - link "College Notebook Registers" [ref=f4e479] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/college-notebook-registers-2859478450997.html?pos=8&kwd=notebook&tags=rk:B|plc:1|dt:0|db:01|prc:1|dtp:p|pfs:1|sv:VGP|rsf:gd|prv:130|ri:VGP_B_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e480]:
+                - button "₹ 130" [ref=f4e481] [cursor=pointer]
+                - generic [ref=f4e482]: /Piece
+              - button "Contact Supplier" [ref=f4e483] [cursor=pointer]
+            - generic [ref=f4e486]:
+              - generic [ref=f4e487]:
+                - link "Mani Prabha" [ref=f4e488] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/mani-prabha/search.html?ss=Notebooks&pid=2859478450997&src=search&pos=8&kwd=notebook&tags=rk%3AB%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7Cpfs%3A1%7Csv%3AVGP%7Crsf%3Agd%7Cprv%3A130%7Cri%3AVGP_B_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e489]: Lucknow · 7 yrs
+                - generic [ref=f4e490]:
+                  - generic [ref=f4e491]: 63% Response Rate
+                  - generic [ref=f4e492]:
+                    - generic "5 out of 5 stars" [ref=f4e493]:
+                      - generic [ref=f4e494]:
+                        - generic [ref=f4e495]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e496]: "5.0"
+                    - generic [ref=f4e497]: (1)
+              - button "Call Now" [ref=f4e498] [cursor=pointer]
+          - article [ref=f4e501]:
+            - generic [ref=f4e502]:
+              - figure [ref=f4e503]:
+                - img "Deluxe Notebook"
+                - button "Deluxe Notebook" [ref=f4e504] [cursor=pointer]
+                - button "Next product variant" [ref=f4e505] [cursor=pointer]
+                - button "1 more images" [ref=f4e507] [cursor=pointer]: "+1"
+              - generic [ref=f4e508]:
+                - button "Show product variant 1" [ref=f4e509] [cursor=pointer]
+                - button "Show product variant 2" [ref=f4e510] [cursor=pointer]
+                - button "Show product variant 3" [ref=f4e511] [cursor=pointer]
+                - button "Show product variant 4" [ref=f4e512] [cursor=pointer]
+              - heading [level=3] [ref=f4e513]:
+                - link "Deluxe Notebook" [ref=f4e514] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/deluxe-notebook-2856851690912.html?pos=9&kwd=notebook&tags=rk:B|plc:1|dt:0|db:01|prc:1|dtp:p||sv:VGP|rsf:gd|prv:100|ri:VGP_B_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e515]:
+                - button "₹ 100" [ref=f4e516] [cursor=pointer]
+                - generic [ref=f4e517]: /Piece
+              - button "Contact Supplier" [ref=f4e518] [cursor=pointer]
+            - generic [ref=f4e521]:
+              - generic [ref=f4e522]:
+                - link "Agarwal Paper & Stationers" [ref=f4e523] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/agarwal-paperstationers/search.html?ss=Notebooks&pid=2856851690912&src=search&pos=9&kwd=notebook&tags=rk%3AB%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7C%7Csv%3AVGP%7Crsf%3Agd%7Cprv%3A100%7Cri%3AVGP_B_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e524]: Lucknow · 11 yrs
+                - generic [ref=f4e525]:
+                  - generic [ref=f4e526]: 58% Response Rate
+                  - generic [ref=f4e527]:
+                    - generic "3.9 out of 5 stars" [ref=f4e528]:
+                      - generic [ref=f4e529]:
+                        - generic [ref=f4e530]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e531]: "3.9"
+                    - generic [ref=f4e532]: (17)
+              - button "Call Now" [ref=f4e533] [cursor=pointer]
+          - article [ref=f4e536]:
+            - generic [ref=f4e537]:
+              - figure [ref=f4e538]:
+                - img "Promotional Notebook Printing (A5 Size)"
+                - button "Promotional Notebook Printing (A5 Size)" [ref=f4e539] [cursor=pointer]
+                - button "2 more images" [ref=f4e540] [cursor=pointer]: "+2"
+              - heading [level=3] [ref=f4e542]:
+                - link "Promotional Notebook Printing (A5 Size)" [ref=f4e543] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/proddetail/promotional-notebook-printing-2857741389712.html?pos=10&kwd=notebook&tags=rk:T|plc:1|dt:0|db:01|prc:1|dtp:p||sv:T|rsf:gd|prv:125|ri:T_T_0_P|em:1-|-res:RC2|ktp:N0|stype:attr=1|mtp:G|wc:1|lcf:3|cq:lucknow|qr_nm:gl-gd|cs:18570|com-cf:nl|ptrs:na|mc:32856|cat:433|qry_typ:P|lang:en|tyr:2|qrd:260813|mrd:260801|prdt:260813|msf:ls|pfen:1|gli:U0G1I2|gc:Noida|ic:Gurugram|scw:1|emt:10
+              - generic [ref=f4e544]:
+                - button "₹ 125" [ref=f4e545] [cursor=pointer]
+                - generic [ref=f4e546]: /Piece
+              - button "Contact Supplier" [ref=f4e547] [cursor=pointer]
+            - generic [ref=f4e550]:
+              - generic [ref=f4e551]:
+                - link "Nonstop Printing Solution" [ref=f4e552] [cursor=pointer]:
+                  - /url: https://www.indiamart.com/nonstop-printing-solution/search.html?ss=Notebooks&pid=2857741389712&src=search&pos=10&kwd=notebook&tags=rk%3AT%7Cplc%3A1%7Cdt%3A0%7Cdb%3A01%7Cprc%3A1%7Cdtp%3Ap%7C%7Csv%3AT%7Crsf%3Agd%7Cprv%3A125%7Cri%3AT_T_0_P%7Cem%3A1-%7C-res%3ARC2%7Cktp%3AN0%7Cstype%3Aattr%3D1%7Cmtp%3AG%7Cwc%3A1%7Clcf%3A3%7Ccq%3Alucknow%7Cqr_nm%3Agl-gd%7Ccs%3A18570%7Ccom-cf%3Anl%7Cptrs%3Ana%7Cmc%3A32856%7Ccat%3A433%7Cqry_typ%3AP%7Clang%3Aen%7Ctyr%3A2%7Cqrd%3A260813%7Cmrd%3A260801%7Cprdt%3A260813%7Cmsf%3Als%7Cpfen%3A1%7Cgli%3AU0G1I2%7Cgc%3ANoida%7Cic%3AGurugram%7Cscw%3A1%7Cemt%3A10
+                - paragraph [ref=f4e553]: Lucknow · 7 yrs
+                - link "TrustSEAL verified" [ref=f4e554] [cursor=pointer]:
+                  - /url: https://trustseal.indiamart.com/members/nonstop-printing-solution
+                  - text: TrustSEAL
+                - generic [ref=f4e556]:
+                  - generic [ref=f4e557]: 84% Response Rate
+                  - generic [ref=f4e558]:
+                    - generic "4.5 out of 5 stars" [ref=f4e559]:
+                      - generic [ref=f4e560]:
+                        - generic [ref=f4e561]: ★★★★★
+                        - text: ★★★★★
+                    - strong [ref=f4e562]: "4.5"
+                    - generic [ref=f4e563]: (28)
+              - button "Call Now" [ref=f4e564] [cursor=pointer]
+          - generic [ref=f4e568]:
+            - button [ref=f4e569] [cursor=pointer]:
+              - img "Notebook" [ref=f4e570]
+              - text: Notebook
+            - button [ref=f4e571] [cursor=pointer]:
+              - img "Leather Notebooks" [ref=f4e572]
+              - text: Leather Notebooks
+            - button [ref=f4e573] [cursor=pointer]:
+              - img "Embroidered Notebook" [ref=f4e574]
+              - text: Embroidered Notebook
+            - button [ref=f4e575] [cursor=pointer]:
+              - img "Spiral Notebooks" [ref=f4e576]
+              - text: Spiral Notebooks
+            - button [ref=f4e577] [cursor=pointer]:
+              - img "Writing Notebook" [ref=f4e578]
+              - text: Writing Notebook
+            - button [ref=f4e579] [cursor=pointer]:
+              - img "Embossment Notebook" [ref=f4e580]
+              - text: Embossment Notebook
+            - button [ref=f4e581] [cursor=pointer]:
+              - img "Fabric Cover Notebook" [ref=f4e582]
+              - text: Fabric Cover Notebook
+            - button [ref=f4e583] [cursor=pointer]:
+              - img "Stone Paper Notebook" [ref=f4e584]
+              - text: Stone Paper Notebook
+            - button [ref=f4e585] [cursor=pointer]:
+              - img "Plantable Notepad" [ref=f4e586]
+              - text: Plantable Notepad
+            - button [ref=f4e587] [cursor=pointer]:
+              - img "Soft Cover Notebook" [ref=f4e588]
+              - text: Soft Cover Notebook
+            - button [ref=f4e589] [cursor=pointer]:
+              - img "Classmate Notebook" [ref=f4e590]
+              - text: Classmate Notebook
+            - button [ref=f4e591] [cursor=pointer]:
+              - img "Sundaram Notebook" [ref=f4e592]
+              - text: Sundaram Notebook
+            - button [ref=f4e593] [cursor=pointer]:
+              - img "Bilt Notebook" [ref=f4e594]
+              - text: Bilt Notebook
+            - button [ref=f4e595] [cursor=pointer]:
+              - img "Navneet Notebook" [ref=f4e596]
+              - text: Navneet Notebook
+            - button [ref=f4e597] [cursor=pointer]:
+              - img "A5 Notebook" [ref=f4e598]
+              - text: A5 Notebook
+        - generic [ref=f4e600]:
+          - heading "Unlock More Verified Sellers" [level=3] [ref=f4e601]
+          - generic [ref=f4e605]:
+            - generic [ref=f4e606]:
+              - strong [ref=f4e607]: IN
+              - text: "+91"
+            - textbox "Mobile number" [ref=f4e608]:
+              - /placeholder: Enter your mobile number
+          - generic [ref=f4e609]: Your mobile number is safe with us
+          - button "Continue" [disabled] [ref=f4e614]
+        - generic [ref=f4e615]:
+          - heading "Recommended searches" [level=2] [ref=f4e616]
+          - generic [ref=f4e617]:
+            - button "Notebook" [ref=f4e618] [cursor=pointer]
+            - button "Leather Notebooks" [ref=f4e622] [cursor=pointer]
+            - button "Embroidered Notebook" [ref=f4e626] [cursor=pointer]
+            - button "Spiral Notebooks" [ref=f4e630] [cursor=pointer]
+            - button "Writing Notebook" [ref=f4e634] [cursor=pointer]
+            - button "Embossment Notebook" [ref=f4e638] [cursor=pointer]
+            - button "Fabric Cover Notebook" [ref=f4e642] [cursor=pointer]
+            - button "Stone Paper Notebook" [ref=f4e646] [cursor=pointer]
+        - generic [ref=f4e707]:
+          - generic [ref=f4e712]:
+            - generic [ref=f4e713]: Looking for Notebook ?
+            - generic [ref=f4e714]: Let us know your requirement, and get quotes from trusted sellers!
+          - generic [ref=f4e715]:
+            - generic [ref=f4e716] [cursor=pointer]: X
+            - generic [ref=f4e717]:
+              - generic: Enter Product/Service name*
+              - textbox "Enter Product / Service name" [ref=f4e718]: Notebook
+            - generic [ref=f4e720]:
+              - generic: Mobile Number*
+              - generic [ref=f4e722]:
+                - textbox [disabled] [ref=f4e724]: "+91"
+                - textbox "Enter your Mobile" [active] [ref=f4e725]
+              - button "Send OTP" [ref=f4e727] [cursor=pointer]
+  - alert [ref=f4e650]

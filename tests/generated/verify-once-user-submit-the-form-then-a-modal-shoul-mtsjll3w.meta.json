@@ -1,0 +1,108 @@
+{
+  "id": "verify-once-user-submit-the-form-then-a-modal-shoul-mtsjll3w",
+  "title": "Automation Practice Form - Submit and Verify Success Modal",
+  "url": "https://demoqa.com/automation-practice-form",
+  "prompt": "verify once user submit the form then a modal should be visiable  also make sure fill all the field",
+  "context": null,
+  "testTypes": [
+    "happy-path"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "text": "Navigate to the automation practice form at https://demoqa.com/automation-practice-form",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s2",
+      "text": "Fill in the First Name field with 'John'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s3",
+      "text": "Fill in the Last Name field with 'Doe'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s4",
+      "text": "Fill in the Email field with 'john.doe@example.com'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s5",
+      "text": "Select 'Male' for the Gender radio button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s6",
+      "text": "Fill in the Mobile Number field with '9876543210'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s7",
+      "text": "Fill in the Date of Birth field with '05 May 1990'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s8",
+      "text": "Select 'Maths' from the Subjects dropdown",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s9",
+      "text": "Check the 'Sports' checkbox in the Hobbies section",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s10",
+      "text": "Fill in the Current Address field with '123 Main Street, New York, NY 10001'",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s11",
+      "text": "Select 'NCR' from the State dropdown",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s12",
+      "text": "Select 'Delhi' from the City dropdown",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s13",
+      "text": "Click the Submit button",
+      "type": "action",
+      "resolved": true
+    },
+    {
+      "id": "s14",
+      "text": "Verify that the success modal with 'Thanks for submitting the form' message is visible",
+      "type": "assertion",
+      "resolved": true
+    }
+  ],
+  "file": "tests/generated/verify-once-user-submit-the-form-then-a-modal-shoul-mtsjll3w.spec.ts",
+  "costUsd": 0.24756150000000005,
+  "durationMs": 118583,
+  "tokens": {
+    "input": 390,
+    "output": 7156,
+    "cacheRead": 1587485,
+    "cacheCreation": 25598
+  },
+  "totalTokens": 1620629,
+  "apiCostUsd": 0.22691600000000003,
+  "createdAt": "2026-09-08T10:46:33.780Z"
+}
