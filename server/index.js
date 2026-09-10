@@ -12,6 +12,11 @@ const JSON_REPORTS_DIR = path.join(PROJECT_ROOT, '.playwright-json-reports');
 const CLAUDE_TIMEOUT_MS = 5 * 60 * 1000;
 const TEST_RUN_TIMEOUT_MS = 2 * 60 * 1000;
 
+// Test-case ids currently being generated/run/healed - guards against a client deleting
+// (or otherwise mutating) a test case out from under an in-flight operation on it, which
+// otherwise crashes that operation with an ENOENT reading a file that was just deleted.
+const busyIds = new Set();
+
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -29,10 +34,30 @@ function slugify(text, maxLen = 60) {
 
 const CLAUDE_MODEL = 'haiku';
 
+// Every runClaudeStreaming call spawns its own `claude -p` process, which in turn spawns
+// its own Playwright MCP server for the mcp__playwright-test__ browser tools - and those
+// all share ONE fixed Chrome profile directory (~/.cache/ms-playwright-mcp/mcp-chrome-*).
+// Only one process can hold that profile's lock at a time, so two of these running at once
+// (two generations, or a generate overlapping a run/heal) causes the second one to hang
+// indefinitely waiting on that lock - which looks exactly like "stuck starting the browser"
+// with no error, no timeout, nothing. Serialize every call through one queue so at most one
+// `claude -p` browser session is ever alive at a time; this also naturally paces how fast
+// the target site gets hit, which helps with login/rate-limit flakiness under load.
+let aiQueueTail = Promise.resolve();
+function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
+  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs);
+  const scheduled = aiQueueTail.then(run, run);
+  aiQueueTail = scheduled.then(
+    () => {},
+    () => {}
+  );
+  return scheduled;
+}
+
 // Runs claude in streaming mode so the caller gets live progress (one JSON event per
 // line on stdout - tool calls, etc.) via onEvent, then resolves with the final "result"
 // event once the run completes (same shape as the non-streaming --output-format json).
-function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
+function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const args = ['-p', prompt, '--model', CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
     if (jsonSchema) args.push('--json-schema', JSON.stringify(jsonSchema));
@@ -109,6 +134,24 @@ function toProgressMessage(event) {
   return null;
 }
 
+// Pulls a live screenshot out of a browser_take_screenshot tool result, if this event is
+// one - lets the UI show a "live view" of the site the agent is actually looking at, not
+// just a text log of its actions. Tool results land on a "user"-type stream-json event
+// (the CLI's own protocol for feeding a tool's output back to the model), with the image
+// as a base64 content block alongside the tool's normal text summary.
+function extractScreenshot(event) {
+  if (event.type !== 'user' || !event.message?.content) return null;
+  for (const block of event.message.content) {
+    if (block.type !== 'tool_result' || !Array.isArray(block.content)) continue;
+    for (const inner of block.content) {
+      if (inner.type === 'image' && inner.source?.type === 'base64' && inner.source.data) {
+        return { mediaType: inner.source.media_type || 'image/png', data: inner.source.data };
+      }
+    }
+  }
+  return null;
+}
+
 const TEST_TYPE_GUIDANCE = {
   'happy-path': 'The normal, expected successful user flow with valid input - the straightforward "this works" case.',
   'edge-case': 'Boundary conditions and unusual-but-valid input: very long strings, empty optional fields, special characters, minimum/maximum values - things that should still be handled gracefully.',
@@ -132,7 +175,110 @@ Reliability standards - apply these to every locator and wait in the file, they 
 2. No position-only locators for anything whose position can change: avoid nth(0)/nth(1)/first()/last() to pick a row/item unless it is truly the only way to disambiguate AND its position is guaranteed stable. If a list/table row's order or membership can change between when the test is generated and when it runs (e.g. an item moves, gets approved/completed, is removed, or new rows are added above it), identify the target by its OWN distinguishing content at run time - its text, id, or current status/state - never by a hardcoded index or "the first row". Example: for approving a pending item, filter rows by their actual pending/unapproved status (e.g. filter({ hasText: 'Pending' }), or a status-cell/attribute check) so a later run correctly targets whichever row is still pending, not whatever happened to be first during generation.
 3. Dialogs: register page.on('dialog', ...) (or page.once('dialog', ...)) BEFORE the action that triggers it, never after. Playwright auto-dismisses a dialog if no listener is attached the moment it appears, so attaching the handler after the triggering click is a no-op that silently cancels the dialog every run.
 4. No fixed delays: never use page.waitForTimeout(...) or any sleep to wait for content, navigation, or an element to become ready. Rely on Playwright's built-in auto-waiting on actions and expect(...) assertions, and when something extra is needed, wait for the actual condition instead of a duration - locator.waitFor() for an element to appear/detach, page.waitForResponse() for a specific network call, page.waitForURL() for navigation, or page.waitForLoadState('networkidle') only when the page has no long-lived polling/websocket traffic that would keep it from ever going idle.
+5. Skeleton/loading placeholders: a row or card existing in the DOM and being "visible" does NOT mean its real data has loaded - many apps render an empty shimmer/skeleton placeholder for each row immediately, then fill in real text a moment later once a request resolves. Before reading a cell's text or matching on its content (e.g. a status column, or a name column you're about to capture as an identifier), first confirm the content is real - e.g. wrap the read in expect(async () => { const t = await cell.textContent(); expect(t?.trim()).not.toBe(''); }).toPass({ timeout: 15000 }) - instead of assuming toBeVisible() on the row already implies its data is populated, and don't assume a generic waitForSelector('table') means the rows inside it are populated.
+6. Toggle/paired-state action buttons: an icon-only button in a row or action menu can silently flip MEANING based on the item's current state - e.g. the same-position button is "Block" when a user is Active but becomes "Unblock" once that user is already Blocked ("Enable"/"Disable", "Activate"/"Deactivate", "Approve"/"Reject" follow the same pattern). Never assume the Nth button, or "the last button", always performs one specific action - identify it by something that encodes ITS CURRENT MEANING (a real icon class, aria-label, or title attribute unique to that action, verified against the live DOM). Read the item's current status first, and either target the correct action directly or normalize to a known starting state first (e.g. unblock as setup, if the item happens to already be blocked) before performing the intended action. This applies even when the row itself was already picked correctly by content, not just when it's picked by position.
+7. Paired-opposite-label substring matching: role/text matchers do a case-insensitive SUBSTRING match by default, not an exact match. A heading or button named "Block User?" / "Block" will also match against "Unblock User?" / "Unblock" (since "Unblock" contains "block" as a substring), silently mis-verifying which dialog/action actually happened. Whenever the expected text could be a substring of an opposite-action label (Block/Unblock, Enable/Disable, Approve/Disapprove, etc.), pass { exact: true } to getByRole/getByText rather than relying on the default substring match.
+8. Scope form fields to their open context: a generic locator like page.locator('textarea') or page.locator('input') matches ANY such element anywhere on the page, not just the one inside the dialog/modal/panel currently open - if the page can have more than one (e.g. a "reason" textarea in both a Block dialog and an Unblock dialog), scope the locator to the specific open dialog/container, or match it by its own accessible name (e.g. getByRole('textbox', { name: 'Reason for Blocking *' })), instead of matching page-wide.
+9. NEVER write a vacuous/escape-hatch assertion: no "if I couldn't find the button/element, just expect(true).toBe(true) and pass anyway" fallback branches, and no defensive if/else-guarded action ("if (await x.isVisible().catch(() => false)) { click it } else { do nothing }") around a step that is actually required for the scenario. A test exists to PROVE the scenario happened - if the real element genuinely can't be found with a correct, live-DOM-verified selector, let the test FAIL loudly there (a normal unguarded action/expect that throws) so the failure is visible, rather than silently no-op past it and still report success. The only acceptable defensive branching is for a state that legitimately varies per run and where EVERY branch performs and verifies a real, meaningful action for that state (e.g. standard #6's Block-vs-Unblock branch) - never a branch whose entire job is to avoid failing.
 `;
+
+// Mechanical safety net for standards #2, #6, and #9 above: prompt text alone doesn't
+// reliably stop a model from hardcoding a row's position, an action button's position
+// within a row, or writing a vacuous fallback assertion that passes without proving
+// anything (especially the cheaper model this runs on) - it tends to just transcribe "I
+// clicked the 2nd row" / "I clicked the last button" / "couldn't find it so just pass"
+// literally instead of doing the harder, correct thing. This runs as an immediate,
+// PRE-EXECUTION static check on freshly generated code - it forces one corrective pass
+// based on the code's own shape, not on whether the test happened to pass or fail, so
+// generation itself gets more stable instead of leaning on healing-after-failure.
+function findPositionalRowViolations(code) {
+  const violations = [];
+  code.split('\n').forEach((line, i) => {
+    if (/\b(?:tr|tbody\s+tr|\[role=["']row["']\])\s*:nth-child\(\s*\d+\s*\)/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'hardcoded row position via :nth-child(N)' });
+    } else if (/\.nth\(\s*\d+\s*\)/.test(line) && /\b(?:tr|row|rows|tbody)\b/i.test(line) && !/\.filter\(/.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'hardcoded row/item position via .nth(N) without filtering by content first' });
+    } else if (/\bbutton\s*:\s*(?:last-child|first-child|nth-child\(\s*\d+\s*\)|nth-of-type\(\s*\d+\s*\))/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'action button picked by CSS position (e.g. button:last-child) instead of a real, state-aware attribute - the same position can mean a different action (e.g. Block vs Unblock) depending on current item state' });
+    } else if (/\bbutton[a-z]*\s*\.\s*(?:last|first)\(\)/i.test(line) || /\.locator\(\s*['"]button['"]\s*\)\s*\.\s*(?:last|first|nth)\(/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'action button picked by position (.last()/.first()/.nth(N)) instead of a real, state-aware attribute - the same position can mean a different action (e.g. Block vs Unblock) depending on current item state' });
+    } else if (/expect\(\s*true\s*\)\s*\.\s*(?:toBe\(\s*true\s*\)|toBeTruthy\(\s*\))/.test(line) || /expect\(\s*1\s*\)\s*\.\s*toBe\(\s*1\s*\)/.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'vacuous/tautological assertion (e.g. expect(true).toBe(true)) - this always passes regardless of whether the real scenario happened, almost always used as a silent fallback when the real target couldn\'t be found' });
+    }
+  });
+  return violations;
+}
+
+// Runs one bounded corrective pass when findPositionalRowViolations finds something -
+// returns null if there was nothing to fix (caller keeps its own result), or the
+// corrected { code, steps, title, usage } if a fix was attempted (whether or not it fully
+// resolved every violation - logged either way so it's visible in the server output).
+// This is a STATIC, code-shape-driven pass - it runs whether or not the test has even
+// been executed yet, so it tightens up generation itself rather than reacting to failure.
+async function enforceRowLocatorRobustness(outPath, onEvent) {
+  const code = await fs.readFile(outPath, 'utf-8');
+  const violations = findPositionalRowViolations(code);
+  if (!violations.length) return null;
+
+  const relPath = path.relative(PROJECT_ROOT, outPath);
+  console.log(`[reliability-check] ${relPath}: ${violations.length} violation(s) found, requesting a fix`);
+
+  const fixPrompt = `You are fixing specific, mechanical robustness bugs in this Playwright test file. It has one or more of:
+- a table/list row, and/or an action button within a row, selected by hardcoded POSITION (a CSS ":nth-child(N)"/":last-child", or a Playwright ".nth(N)"/".last()"/".first()") instead of by that element's own stable, identifying content or state;
+- a vacuous/tautological assertion (e.g. "expect(true).toBe(true)") used as a silent fallback that makes the test pass without actually proving the scenario happened.
+
+These are real correctness bugs, not style nits:
+- For ROWS: the very action this test performs (blocking, approving, completing, deleting, etc.) is likely to change that row's order or remove it from view. On the next run, the same fixed position will point at a DIFFERENT, unrelated row - the test will then silently act on or verify the wrong user/item.
+- For ACTION BUTTONS: a button picked by position within a row (e.g. "the last button") often TOGGLES meaning based on that item's current state - e.g. it performs "Block" when the user is Active but the same-position button performs "Unblock" once already Blocked (same pattern for Enable/Disable, Activate/Deactivate, Approve/Reject). Picking it by position silently performs the WRONG action, or fails outright, depending on whatever state the item happens to be in when the test runs.
+- For VACUOUS ASSERTIONS: a test with a fallback like "if (couldn't find the button) { expect(true).toBe(true) }" reports as PASSING even when it never actually performed the scenario at all - this is worse than a failing test, because it hides real breakage behind a green checkmark.
+
+File (absolute path): ${outPath}
+
+Violations found:
+${violations.map((v) => `- Line ${v.line}: ${v.reason}\n  ${v.text}`).join('\n')}
+
+Current file contents:
+${code}
+${RELIABILITY_STANDARDS}
+Fix instructions:
+1. For a flagged ROW locator: replace it with one resolved via the row's own real, distinguishing content - e.g. capture the row's identifying cell text (name/email) into a variable BEFORE any mutating action, then re-locate that same row later via something like page.locator('tbody tr').filter({ hasText: capturedText }) rather than a fixed index. If the position was only used to pick WHICH row to act on (not to re-verify it later), select it by a real state condition instead (e.g. a status cell containing "Active"/"Pending"), not by index.
+2. For a flagged ACTION BUTTON locator: replace it with one resolved via a real, stable attribute that identifies that specific action regardless of position - an icon class (e.g. svg.lucide-ban vs svg.lucide-user-check), an aria-label, or a title attribute, verified against the live DOM if you need to (do not guess the class/attribute name). Read the item's current status first, and either target the correct action directly, or normalize to a known starting state first (e.g. perform the opposite action as setup if the item is already in the target state) before performing the test's intended action. Also check nearby assertions for the same substring-matching trap (e.g. a "Block User?" heading/text check without { exact: true } will also match "Unblock User?") and add { exact: true } where that risk applies.
+3. For a flagged VACUOUS ASSERTION: remove the escape-hatch entirely. Find the REAL selector for whatever it was trying to find (verify against the live DOM), and make that the actual, unguarded step - if the real element genuinely doesn't exist, the test should throw/fail there, not fall back to a no-op pass. Do not leave an if/else where one branch does nothing but still "succeeds."
+4. Do not change the test's overall intent, or anything not required to fix the flagged issue(s).
+5. Use the mcp__playwright-test__ browser tools to confirm the live DOM for whatever you need to fix correctly - do not guess selectors, icon classes, or attributes.
+6. Write the corrected file back with the Write tool to exactly this path: ${outPath}
+7. Do not ask any questions - make reasonable judgment calls, you are running unattended.
+8. Respond with ONLY the structured JSON result: this test's "title", a "description" (1-3 plain-English sentences summarizing what the test covers and what it proves - keep it as-is if the fix didn't change the test's overall intent), and its FULL ordered list of "steps" as they now exist in the corrected file, each restated as one short plain-English sentence with a "type" of "action" or "assertion".`;
+
+  const result = await runClaudeStreaming(fixPrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
+  if (result.is_error || !result.structured_output) {
+    console.error(`[reliability-check] ${relPath}: fix pass failed - ${result.result}`);
+    return null;
+  }
+
+  let fixedCode;
+  try {
+    fixedCode = await fs.readFile(outPath, 'utf-8');
+  } catch {
+    console.error(`[reliability-check] ${relPath}: fix pass did not rewrite the file`);
+    return null;
+  }
+
+  const remaining = findPositionalRowViolations(fixedCode);
+  console.log(
+    remaining.length
+      ? `[reliability-check] ${relPath}: ${remaining.length} violation(s) still present after fix pass - proceeding anyway, review recommended`
+      : `[reliability-check] ${relPath}: violation(s) resolved`
+  );
+
+  return {
+    code: fixedCode,
+    steps: result.structured_output.steps,
+    title: result.structured_output.title,
+    description: result.structured_output.description,
+    usage: { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
+  };
+}
 
 function extractTokenUsage(result) {
   const u = result.usage || {};
@@ -175,6 +321,7 @@ const TEST_CASE_RESULT_SCHEMA = {
   type: 'object',
   properties: {
     title: { type: 'string' },
+    description: { type: 'string' },
     steps: {
       type: 'array',
       items: {
@@ -187,7 +334,7 @@ const TEST_CASE_RESULT_SCHEMA = {
       },
     },
   },
-  required: ['title', 'steps'],
+  required: ['title', 'description', 'steps'],
 };
 
 function mergeTokens(a, b) {
@@ -203,11 +350,12 @@ function mergeTokens(a, b) {
 // now actually implements it. Used any time something other than resolvePendingSteps ends
 // up changing the file (the healer patching a locator, intent-mode re-deriving the whole
 // flow) - without this, meta.steps silently drifts from what the file actually does.
-async function syncMetaSteps(meta, code, rawSteps, usage = {}, title) {
+async function syncMetaSteps(meta, code, rawSteps, usage = {}, title, description) {
   const steps = rawSteps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
   const updatedMeta = {
     ...meta,
     title: title || meta.title,
+    description: description || meta.description,
     steps,
     costUsd: (meta.costUsd || 0) + (usage.costUsd || 0),
     durationMs: (meta.durationMs || 0) + (usage.durationMs || 0),
@@ -219,11 +367,15 @@ async function syncMetaSteps(meta, code, rawSteps, usage = {}, title) {
   return { ...updatedMeta, code };
 }
 
-// Generates one Playwright test via a live browser session and persists it
-// (file + metadata sidecar with structured, editable steps).
-async function generateTestCase({ url, prompt, context, title, testTypes }, onEvent) {
-  const timestamp = Date.now().toString(36);
-  const slug = `${slugify(title || prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+// Generates one Playwright test via a live browser session, runs it once, and - if that
+// run fails - immediately auto-heals it right then (one healer attempt, re-run to confirm)
+// before ever handing the result back. This is the full generate -> run -> heal-if-needed
+// lifecycle in one shot, so a test that needed healing on its first run doesn't require a
+// separate manual step - it comes back already fixed (or, if the healer couldn't fix it,
+// honestly reported as failed with why). Persists the file + metadata sidecar with
+// structured, editable steps. `slug` is reserved by the caller before this starts (see
+// /api/test-cases) so the id is known for busy-tracking from the very first moment.
+async function generateTestCase({ url, prompt, context, title, testTypes, slug }, send, onEvent) {
   const outPath = path.join(GENERATED_DIR, `${slug}.spec.ts`);
   const relOutPath = path.relative(PROJECT_ROOT, outPath);
   const typeGuidance = describeTestTypes(testTypes);
@@ -241,7 +393,11 @@ Instructions:
 4. Follow the conventions used elsewhere in this repo's tests/ directory: import { test, expect } from '@playwright/test'; one test.describe containing one test.
 5. Write the final file using the Write tool to exactly this absolute path: ${outPath}
 6. Do not ask any questions - make reasonable judgment calls yourself, you are running unattended.
-7. Respond with ONLY the structured JSON result: a short "title" for this test case, and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+7. Respond with ONLY the structured JSON result: a "title" for this test case (a specific, descriptive sentence-fragment naming the exact scenario and outcome - e.g. "Admin can block an active user and see their status change to Blocked" rather than a generic "Block user test" - someone scanning a list of titles should be able to tell this test apart from other tests on the same page/feature without opening it), a "description" (1-3 plain-English sentences explaining what this test covers, what user-facing behavior it exercises, and what it proves when it passes - written for someone deciding whether this test is relevant without reading the code), and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+
+  // Persisted (meta.generationPrompt) so the exact prompt used is still inspectable via the
+  // API/meta.json later, even though it's no longer surfaced in the UI.
+  send({ type: 'prompt', text: claudePrompt });
 
   const result = await runClaudeStreaming(claudePrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
 
@@ -260,23 +416,96 @@ Instructions:
     throw err;
   }
 
-  const tokens = extractTokenUsage(result);
-  const steps = result.structured_output.steps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
+  let tokens = extractTokenUsage(result);
+  let costUsd = result.total_cost_usd;
+  let durationMs = result.duration_ms;
+  let finalTitle = result.structured_output.title || title || prompt;
+  let finalDescription = result.structured_output.description || '';
+  let rawSteps = result.structured_output.steps;
+
+  // Static, code-shape corrective pass BEFORE ever running the test - catches position-only
+  // locators and vacuous assertions regardless of whether the test happens to pass.
+  const rowFix = await enforceRowLocatorRobustness(outPath, onEvent);
+  if (rowFix) {
+    code = rowFix.code;
+    rawSteps = rowFix.steps;
+    finalTitle = rowFix.title || finalTitle;
+    finalDescription = rowFix.description || finalDescription;
+    tokens = mergeTokens(tokens, rowFix.usage.tokens);
+    costUsd += rowFix.usage.costUsd;
+    durationMs += rowFix.usage.durationMs;
+  }
+
+  // Run it once. If it fails, heal it right then (one attempt) and re-run to confirm -
+  // the whole generate -> run -> heal-if-needed lifecycle happens here, so the caller gets
+  // back a test that's already been made to work, not one that still needs a manual step.
+  send({ type: 'progress', message: 'Verifying the generated test actually passes...' });
+  let verifyRun = await runPlaywrightTest(relOutPath);
+  let verified = verifyRun.passed;
+  let healSummary = null;
+
+  if (!verified) {
+    console.log(`[test-cases] ${slug}: first run failed - attempting one automatic heal`);
+    send({ type: 'progress', message: 'First run failed - healing it now...' });
+    const healerAttempt = await runHealer(outPath, relOutPath, verifyRun.output, onEvent);
+    if (healerAttempt.ok) {
+      costUsd += healerAttempt.costUsd || 0;
+      durationMs += healerAttempt.durationMs || 0;
+      tokens = mergeTokens(tokens, healerAttempt.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
+      healSummary = healerAttempt.summary;
+    }
+    if (healerAttempt.ok && !healerAttempt.gaveUp) {
+      // The healer edits the file directly - re-check it against the same static rules
+      // (it can just as easily reintroduce a hardcoded row position as generation did).
+      const healRowFix = await enforceRowLocatorRobustness(outPath, onEvent);
+      if (healRowFix) {
+        rawSteps = healRowFix.steps;
+        finalTitle = healRowFix.title || finalTitle;
+        finalDescription = healRowFix.description || finalDescription;
+        tokens = mergeTokens(tokens, healRowFix.usage.tokens);
+        costUsd += healRowFix.usage.costUsd;
+        durationMs += healRowFix.usage.durationMs;
+      } else if (healerAttempt.steps?.length) {
+        rawSteps = healerAttempt.steps;
+      }
+
+      send({ type: 'progress', message: 'Re-running after the fix...' });
+      verifyRun = await runPlaywrightTest(relOutPath);
+      verified = verifyRun.passed;
+    }
+    try {
+      code = await fs.readFile(outPath, 'utf-8');
+    } catch {
+      // file should still be there - the healer edits in place, doesn't delete it
+    }
+    console.log(`[test-cases] ${slug}: ${verified ? 'passed after heal' : 'still failing after heal'}`);
+  }
+
+  const steps = rawSteps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
   const meta = {
     id: slug,
-    title: result.structured_output.title || title || prompt,
+    title: finalTitle,
+    description: finalDescription,
     url,
     prompt,
     context: context || null,
     testTypes: testTypes && testTypes.length ? testTypes : ['happy-path'],
     steps,
     file: relOutPath,
-    costUsd: result.total_cost_usd,
-    durationMs: result.duration_ms,
+    // The exact prompt sent to the generator agent, kept so it's still inspectable after
+    // the fact (not just while the live stream is running).
+    generationPrompt: claudePrompt,
+    costUsd,
+    durationMs,
     tokens,
     totalTokens: totalTokenCount(tokens),
     apiCostUsd: computeApiCostUsd(tokens),
     createdAt: new Date().toISOString(),
+    verified,
+    healed: healSummary ? { summary: healSummary } : undefined,
+    // Only kept when NOT verified, so the caller/UI can surface why - trimmed since
+    // Playwright output can be long and this isn't needed once a test is passing.
+    verificationFailureOutput: verified ? undefined : (verifyRun.output || '').slice(-4000),
   };
   await fs.writeFile(path.join(GENERATED_DIR, `${slug}.meta.json`), JSON.stringify(meta, null, 2), 'utf-8');
 
@@ -307,7 +536,7 @@ Instructions:
 1. Use the mcp__playwright-test__ browser tools to navigate to ${meta.url} (call mcp__playwright-test__generator_setup_page first) and verify real selectors live against the current page for the [NEEDS IMPLEMENTING] steps only - do not guess. Pass a short, specific "intent" string with every browser tool call describing what you're doing - this is shown to the user live as progress.
 2. Implement ONLY the [NEEDS IMPLEMENTING] steps, inserting/updating them at their correct position in the step order. Leave every other step's existing behavior untouched. If an existing (already-implemented) step you're leaving untouched uses a position-only locator, a dialog handler registered after its triggering action, or a fixed delay, leave it as-is unless fixing it is necessary to implement a [NEEDS IMPLEMENTING] step - this pass targets only the queued changes.
 3. Write the complete updated file back with the Write tool to exactly this path: ${outPath}
-4. Respond with ONLY the structured JSON result: this test's "title" and its FULL ordered list of "steps" as they now exist in the updated file (including the unchanged ones), each restated as one short plain-English sentence with a "type" of "action" or "assertion".
+4. Respond with ONLY the structured JSON result: this test's "title", a "description" (1-3 plain-English sentences summarizing what the test covers and what it proves, updated to reflect the newly implemented steps), and its FULL ordered list of "steps" as they now exist in the updated file (including the unchanged ones), each restated as one short plain-English sentence with a "type" of "action" or "assertion".
 5. Do not ask any questions - make reasonable judgment calls, you are running unattended.`;
 
   const result = await runClaudeStreaming(claudePrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
@@ -331,7 +560,8 @@ Instructions:
     updatedCode,
     result.structured_output.steps,
     { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
-    result.structured_output.title
+    result.structured_output.title,
+    result.structured_output.description
   );
 }
 
@@ -367,6 +597,8 @@ function streamRoute(res) {
   const onEvent = (event) => {
     const message = toProgressMessage(event);
     if (message) send({ type: 'progress', message });
+    const screenshot = extractScreenshot(event);
+    if (screenshot) send({ type: 'screenshot', dataUrl: `data:${screenshot.mediaType};base64,${screenshot.data}` });
   };
   return { send, onEvent };
 }
@@ -383,14 +615,23 @@ app.post('/api/test-cases', async (req, res) => {
     return res.status(400).json({ error: 'url must be a valid absolute URL' });
   }
 
-  console.log(`[test-cases] create: url=${url} prompt=${prompt} testTypes=${testTypes}`);
+  // Reserve the id up front (before any AI/browser work starts) so it's busy-tracked for
+  // its ENTIRE lifetime - otherwise a delete sent in the first moments of generation could
+  // race a slug that doesn't have a file on disk to protect yet.
+  const timestamp = Date.now().toString(36);
+  const slug = `${slugify(title || prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+
+  console.log(`[test-cases] create: id=${slug} url=${url} prompt=${prompt} testTypes=${testTypes}`);
   const { send, onEvent } = streamRoute(res);
+  busyIds.add(slug);
   try {
-    const item = await generateTestCase({ url, prompt, context, title, testTypes }, onEvent);
+    const item = await generateTestCase({ url, prompt, context, title, testTypes, slug }, send, onEvent);
     send({ type: 'done', item });
   } catch (err) {
     console.error(`[test-cases] create failed: ${err.message}`);
     send({ type: 'error', message: err.message, detail: err.detail });
+  } finally {
+    busyIds.delete(slug);
   }
   res.end();
 });
@@ -424,6 +665,9 @@ app.get('/api/test-cases', async (_req, res) => {
 app.delete('/api/test-cases/:id', async (req, res) => {
   const { id } = req.params;
   if (slugify(id) !== id) return res.status(400).json({ error: 'invalid id' });
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is still generating/running/healing - wait for it to finish before deleting it' });
+  }
 
   let deleted = false;
   for (const p of [path.join(GENERATED_DIR, `${id}.spec.ts`), path.join(GENERATED_DIR, `${id}.meta.json`)]) {
@@ -559,12 +803,21 @@ app.post('/api/run-test', async (req, res) => {
     return res.status(404).json({ error: `file not found: ${file}` });
   }
 
-  console.log(`[run-test] running: ${file}`);
-  const relFile = path.relative(PROJECT_ROOT, resolved);
-  const result = await runPlaywrightTest(relFile);
-  console.log(`[run-test] ${file} -> ${result.passed ? 'PASSED' : 'FAILED'}`);
+  const id = path.basename(resolved, '.spec.ts');
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is currently generating/running/healing - wait for it to finish first' });
+  }
+  busyIds.add(id);
 
-  res.json({ ...result, reportUrl: '/report' });
+  console.log(`[run-test] running: ${file}`);
+  try {
+    const relFile = path.relative(PROJECT_ROOT, resolved);
+    const result = await runPlaywrightTest(relFile);
+    console.log(`[run-test] ${file} -> ${result.passed ? 'PASSED' : 'FAILED'}`);
+    res.json({ ...result, reportUrl: '/report' });
+  } finally {
+    busyIds.delete(id);
+  }
 });
 
 const INTENT_RESULT_SCHEMA = {
@@ -771,6 +1024,16 @@ app.post('/api/run-adaptive', async (req, res) => {
     return res.status(404).json({ error: `file not found: ${file}` });
   }
 
+  // Guard against a concurrent delete (or another run-adaptive call) yanking this file out
+  // from under this in-flight run - previously that crashed with an ENOENT mid-healer.
+  const id = path.basename(resolvedPath, '.spec.ts');
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is still generating/running/healing - wait for it to finish first' });
+  }
+  busyIds.add(id);
+
+  try {
+
   // Fall back to the test's own stored metadata (url/prompt) if not passed explicitly,
   // so any test generated through the UI can self-heal with no extra input required.
   const metaPath = resolvedPath.replace(/\.spec\.ts$/, '.meta.json');
@@ -885,6 +1148,10 @@ app.post('/api/run-adaptive', async (req, res) => {
 
   send({ type: 'done', item: { finalPassed: true, resolvedAtRung: 'intent', rungs, reportUrl: '/report', videoUrl: confirmRun.videoUrl } });
   res.end();
+
+  } finally {
+    busyIds.delete(id);
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));

@@ -36,6 +36,8 @@
   .log-feed div:last-child { opacity: 1; color: #fff; }
   .log-feed div.log-error { color: #ff8a80; }
 
+  .card-description { font-size: 13.5px; color: #444; line-height: 1.45; margin-bottom: 8px; }
+
   .empty-state { text-align: center; color: #888; padding: 40px 0; font-size: 14px; }
 
   .card { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; padding: 20px 22px; margin-bottom: 18px; }
@@ -130,7 +132,10 @@
   const $ = (id) => document.getElementById(id);
 
   // ---------- shared: ndjson streaming request ----------
-  async function streamRequest(url, options, onProgress) {
+  // onExtra (optional) receives any event that isn't progress/done/error as-is (e.g.
+  // {type:'screenshot', dataUrl} for the live view, {type:'prompt', text} for the prompt
+  // sent to the agent) - callers that don't care about those can just omit it.
+  async function streamRequest(url, options, onProgress, onExtra) {
     const resp = await fetch(url, options);
     if (!resp.ok || !resp.body) {
       const data = await resp.json().catch(() => ({}));
@@ -153,6 +158,7 @@
         if (event.type === 'progress') onProgress(event.message, false);
         else if (event.type === 'done') finalItem = event.item;
         else if (event.type === 'error') finalError = event;
+        else if (onExtra) onExtra(event);
       }
     }
     if (finalError) {
@@ -396,6 +402,8 @@
   function applyUpdatedItem(card, item) {
     card.dataset.item = JSON.stringify(item);
     card.querySelector('.card-title').textContent = item.title;
+    const descEl = card.querySelector('.card-description');
+    if (descEl) descEl.textContent = item.description || '';
     card.querySelector('.code-pre').textContent = item.code || '(code unavailable)';
     updatePendingBanner(card.querySelector('.pending-slot'), item);
     renderSteps(card, item);
@@ -423,6 +431,20 @@
     header.appendChild(el('div', { class: 'card-title', text: item.title }));
     header.appendChild(collapseBtn);
     card.appendChild(header);
+
+    if (item.description) {
+      card.appendChild(el('div', { class: 'card-description', text: item.description }));
+    }
+
+    if (typeof item.verified === 'boolean') {
+      const verifyNote = el('div', {
+        class: item.verified ? 'card-meta' : 'error-text',
+        text: item.verified
+          ? (item.healed ? 'Verified: failed on first run, auto-healed, now passing.' : 'Verified: passed on first run.')
+          : 'Verified: still failing after an automatic heal attempt - see Run/Self Heal below.',
+      });
+      card.appendChild(verifyNote);
+    }
 
     if (item.testTypes?.length) {
       const badgeRow = el('div', { class: 'badge-row' });
