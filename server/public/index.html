@@ -30,6 +30,16 @@
   .field-row { display: flex; gap: 12px; }
   .field-row > div { flex: 1; }
 
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #e4e6ea; }
+  .tab-btn { background: transparent; color: #666; padding: 10px 4px; margin: 0 16px 0 0; border-radius: 0; font-weight: 600; font-size: 14.5px; border-bottom: 2px solid transparent; }
+  .tab-btn:hover { color: #1a1a1a; }
+  .tab-btn.active { color: #0d6efd; border-bottom-color: #0d6efd; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .file-drop { display: block; }
+  .file-name { font-size: 12.5px; color: #555; margin-top: 4px; }
+  .scan-summary { font-size: 13px; color: #555; margin-top: 10px; background: #f8f9fb; border-radius: 6px; padding: 8px 10px; }
+
   .log-feed { margin-top: 14px; background: #0d1117; color: #9fe3a0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; border-radius: 8px; padding: 12px 14px; max-height: 180px; overflow-y: auto; display: none; }
   .log-feed.open { display: block; }
   .log-feed div { padding: 1px 0; opacity: .85; }
@@ -95,38 +105,77 @@
 <h1>QA Test Cases</h1>
 <p class="subtitle">Test cases you generate here run against a live browser session and stay stored on disk.</p>
 
-<div class="panel">
-  <div class="panel-header" id="newFormToggle">
-    <h2>+ New Test Case</h2>
-    <button class="secondary" type="button" id="newFormToggleBtn">Show</button>
-  </div>
-  <div class="new-form-body collapsed" id="newFormBody">
-    <label for="url">Website URL</label>
-    <input id="url" type="url" placeholder="https://example.com/login" />
-
-    <label for="prompt">What should this test verify? (plain English)</label>
-    <textarea id="prompt" placeholder="Verify that submitting the login form with valid credentials shows the dashboard"></textarea>
-
-    <label for="context">Context (optional) - credentials, session/OTP info, test data</label>
-    <textarea id="context" placeholder="e.g. Log in with test@example.com / password123. If prompted for an OTP, use 000000."></textarea>
-
-    <label for="testTypes">Test type(s)</label>
-    <select id="testTypes" multiple>
-      <option value="happy-path" selected>Happy Path</option>
-      <option value="edge-case">Edge Case</option>
-      <option value="security">Security</option>
-    </select>
-    <div class="hint">Ctrl/Cmd-click to select multiple.</div>
-
-    <div style="margin-top:16px">
-      <button id="generateBtn" type="button">Generate Test Case</button>
-    </div>
-    <div class="log-feed" id="createLog"></div>
-    <div class="error-text" id="createError" style="display:none"></div>
-  </div>
+<div class="tab-bar">
+  <button class="tab-btn active" type="button" id="tabSingleBtn">Single Test Case</button>
+  <button class="tab-btn" type="button" id="tabScanBtn">Scan Whole Website</button>
 </div>
 
-<div id="testCases"></div>
+<div class="tab-panel active" id="tabSingle">
+  <div class="panel">
+    <div class="panel-header" id="newFormToggle">
+      <h2>+ New Test Case</h2>
+      <button class="secondary" type="button" id="newFormToggleBtn">Show</button>
+    </div>
+    <div class="new-form-body collapsed" id="newFormBody">
+      <label for="url">Website URL</label>
+      <input id="url" type="url" placeholder="https://example.com/login" />
+
+      <label for="prompt">What should this test verify? (plain English)</label>
+      <textarea id="prompt" placeholder="Verify that submitting the login form with valid credentials shows the dashboard"></textarea>
+
+      <label for="context">Context (optional) - credentials, session/OTP info, test data</label>
+      <textarea id="context" placeholder="e.g. Log in with test@example.com / password123. If prompted for an OTP, use 000000."></textarea>
+
+      <label for="testTypes">Test type(s)</label>
+      <select id="testTypes" multiple>
+        <option value="happy-path" selected>Happy Path</option>
+        <option value="edge-case">Edge Case</option>
+        <option value="security">Security</option>
+      </select>
+      <div class="hint">Ctrl/Cmd-click to select multiple.</div>
+
+      <div style="margin-top:16px">
+        <button id="generateBtn" type="button">Generate Test Case</button>
+      </div>
+      <div class="log-feed" id="createLog"></div>
+      <div class="error-text" id="createError" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="testCases"></div>
+</div>
+
+<div class="tab-panel" id="tabScan">
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Scan Whole Website</h2>
+    </div>
+    <div style="margin-top:14px">
+      <label for="scanUrl">Website URL</label>
+      <input id="scanUrl" type="url" placeholder="https://example.com" />
+
+      <label for="scanMaxCases">Max number of test cases (up to 30)</label>
+      <input id="scanMaxCases" type="number" min="1" max="30" value="10" />
+
+      <label for="scanContext">Context (optional) - credentials, session/OTP info, priorities</label>
+      <textarea id="scanContext" placeholder="e.g. Log in with test@example.com / password123. Focus on checkout and account management flows."></textarea>
+
+      <label for="scanPrdFile">Requirements / PRD document (optional) - PDF, Word, or text</label>
+      <input id="scanPrdFile" type="file" class="file-drop" accept=".pdf,.doc,.docx,.txt,.md" />
+      <div class="file-name" id="scanPrdFileName"></div>
+      <div class="hint">If provided, planned test cases will prioritize the flows this document describes.</div>
+
+      <div style="margin-top:16px">
+        <button id="scanBtn" type="button">Scan Website &amp; Generate Test Cases</button>
+      </div>
+      <div class="log-feed" id="scanLog"></div>
+      <div class="error-text" id="scanError" style="display:none"></div>
+      <div class="scan-summary" id="scanSummary" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="scanResults"></div>
+</div>
 
 <script>
   const $ = (id) => document.getElementById(id);
@@ -264,6 +313,95 @@
       $('context').value = '';
       logEl.classList.remove('open');
       logEl.innerHTML = '';
+    } catch (err) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- tabs ----------
+  const tabSingleBtn = $('tabSingleBtn');
+  const tabScanBtn = $('tabScanBtn');
+  const tabSingle = $('tabSingle');
+  const tabScan = $('tabScan');
+  function activateTab(name) {
+    const isSingle = name === 'single';
+    tabSingleBtn.classList.toggle('active', isSingle);
+    tabScanBtn.classList.toggle('active', !isSingle);
+    tabSingle.classList.toggle('active', isSingle);
+    tabScan.classList.toggle('active', !isSingle);
+  }
+  tabSingleBtn.addEventListener('click', () => activateTab('single'));
+  tabScanBtn.addEventListener('click', () => activateTab('scan'));
+
+  // ---------- scan whole website ----------
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Could not read the selected file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $('scanPrdFile').addEventListener('change', () => {
+    const file = $('scanPrdFile').files[0];
+    $('scanPrdFileName').textContent = file ? file.name : '';
+  });
+
+  $('scanBtn').addEventListener('click', async () => {
+    const url = $('scanUrl').value.trim();
+    const context = $('scanContext').value.trim();
+    let maxTestCases = parseInt($('scanMaxCases').value, 10);
+    if (!maxTestCases || maxTestCases < 1) maxTestCases = 1;
+    if (maxTestCases > 30) maxTestCases = 30;
+    const prdFile = $('scanPrdFile').files[0];
+
+    const btn = $('scanBtn');
+    const logEl = $('scanLog');
+    const errorEl = $('scanError');
+    const summaryEl = $('scanSummary');
+    errorEl.style.display = 'none';
+    summaryEl.style.display = 'none';
+    logEl.innerHTML = '';
+    logEl.classList.add('open');
+    logEl.appendChild(el('div', { text: 'Starting...' }));
+
+    if (!url) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Website URL is required.';
+      logEl.classList.remove('open');
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const body = { url, context: context || undefined, maxTestCases };
+      if (prdFile) {
+        body.prdFileName = prdFile.name;
+        body.prdFileBase64 = await fileToBase64(prdFile);
+      }
+
+      const summary = await streamRequest(
+        '/api/scan-site',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+        (message) => logEl.appendChild(el('div', { text: message })) && (logEl.scrollTop = logEl.scrollHeight),
+        (event) => {
+          if (event.type === 'item') {
+            $('scanResults').insertBefore(renderCard(event.item), $('scanResults').firstChild);
+          }
+        }
+      );
+
+      logEl.classList.remove('open');
+      logEl.innerHTML = '';
+      summaryEl.style.display = 'block';
+      summaryEl.textContent = `Generated ${summary.generated} of ${summary.planned} planned test case(s)` +
+        (summary.failed ? ` - ${summary.failed} failed to generate` : '') + '.';
+      $('scanPrdFile').value = '';
+      $('scanPrdFileName').textContent = '';
     } catch (err) {
       errorEl.style.display = 'block';
       errorEl.textContent = 'Error: ' + err.message;

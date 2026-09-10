@@ -9,8 +9,13 @@ const GENERATED_DIR = path.join(TESTS_DIR, 'generated');
 const INTENT_MANIFESTS_DIR = path.join(PROJECT_ROOT, 'specs', 'intent-manifests');
 const TEST_RESULTS_DIR = path.join(PROJECT_ROOT, 'test-results');
 const JSON_REPORTS_DIR = path.join(PROJECT_ROOT, '.playwright-json-reports');
+const UPLOADS_DIR = path.join(PROJECT_ROOT, '.uploads');
 const CLAUDE_TIMEOUT_MS = 5 * 60 * 1000;
+// Site scans drive a much longer-running agent session (crawling several pages, planning,
+// then generating multiple test cases) - give it far more headroom than a single generation.
+const SCAN_TIMEOUT_MS = 20 * 60 * 1000;
 const TEST_RUN_TIMEOUT_MS = 2 * 60 * 1000;
+const MAX_SCAN_TEST_CASES = 30;
 
 // Test-case ids currently being generated/run/healed - guards against a client deleting
 // (or otherwise mutating) a test case out from under an in-flight operation on it, which
@@ -18,7 +23,10 @@ const TEST_RUN_TIMEOUT_MS = 2 * 60 * 1000;
 const busyIds = new Set();
 
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+// Raised above the default 5mb so an uploaded PRD/requirements doc (base64-encoded in the
+// JSON body for the site-scan feature) has room - a scanned PDF can be a few MB before
+// base64's ~33% overhead.
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/report', express.static(path.join(PROJECT_ROOT, 'playwright-report')));
 // Serves recorded run videos/screenshots so the UI can play them back after a run.
@@ -512,6 +520,59 @@ Instructions:
   return { ...meta, code };
 }
 
+const SCAN_PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    sitesSummary: { type: 'string' },
+    scenarios: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          url: { type: 'string' },
+          title: { type: 'string' },
+          prompt: { type: 'string' },
+          testTypes: { type: 'array', items: { type: 'string', enum: ['happy-path', 'edge-case', 'security'] } },
+        },
+        required: ['url', 'title', 'prompt'],
+      },
+    },
+  },
+  required: ['sitesSummary', 'scenarios'],
+};
+
+// Crawls a live site with a browser session, optionally reads an uploaded PRD/requirements
+// document, and plans up to `maxTestCases` distinct, high-value test scenarios grounded in
+// what the site actually does (not guessed) - the same live-DOM-verification standard
+// generation itself follows, just applied to picking WHAT to test rather than HOW.
+async function scanWebsiteAndPlan({ url, context, maxTestCases, prdPath, prdFileName }, onEvent) {
+  const claudePrompt = `You are planning a batch of Playwright test cases for a QA automation product by exploring a live website.
+
+Target URL (starting point): ${url}
+${context ? `\nContext for this scan (credentials, session/OTP info, test data, priorities - use only what's relevant): ${context}\n` : ''}${
+    prdPath
+      ? `\nA requirements/PRD document was uploaded: "${prdFileName}" (absolute path: ${prdPath}). Read it first (it may be a PDF, Word doc, or plain text) with the Read tool and use it to understand what features/flows matter most - prioritize test scenarios that cover requirements it describes.\n`
+      : ''
+  }
+Instructions:
+1. Use the mcp__playwright-test__ browser tools to actually explore the live site - call mcp__playwright-test__generator_setup_page first, then navigate through its main pages/nav links/primary flows (forms, listings, auth, CRUD screens, checkout, dashboards, etc.) to understand what it actually does. Verify real pages/elements exist - do not invent scenarios for features you haven't actually seen on the site. Pass a short "intent" string with each browser tool call.
+2. Do not attempt to exhaustively crawl every page - explore enough of the site's main navigation and distinct page types to identify its most important, distinct user-facing flows.
+3. Based on what you actually found (and the PRD/context above, if given), select up to ${maxTestCases} of the most valuable, DISTINCT test scenarios - prioritize covering different features/flows over minor variations of the same one. Each scenario must target a real page you actually visited.
+4. For each scenario, write it in the exact same shape a human would type into this product's single-test-case generator: a specific "url" (the real page this scenario starts from), a "title" (specific sentence-fragment naming the exact scenario and outcome, not generic), a "prompt" (plain-English description of the scenario to verify, written the same way a QA person would describe a test case), and "testTypes" (one or more of "happy-path"/"edge-case"/"security" - default to ["happy-path"] if none clearly apply).
+5. Do not ask any questions - make reasonable judgment calls, you are running unattended.
+6. Respond with ONLY the structured JSON result: a "sitesSummary" (1-2 sentences on what the site is and what you explored) and "scenarios" (the ordered list described above, most valuable first, capped at ${maxTestCases}).`;
+
+  const result = await runClaudeStreaming(claudePrompt, SCAN_PLAN_SCHEMA, onEvent, SCAN_TIMEOUT_MS);
+  if (result.is_error || !result.structured_output) {
+    const err = new Error(result.result || 'Claude run failed');
+    err.detail = result.result;
+    throw err;
+  }
+
+  const scenarios = (result.structured_output.scenarios || []).slice(0, maxTestCases);
+  return { sitesSummary: result.structured_output.sitesSummary, scenarios };
+}
+
 // Catches a test file up with whatever steps were added/edited (in meta.steps, marked
 // resolved: false) since the code was last compiled - re-driving a live browser session
 // ONCE for the whole batch, then rewriting the file and returning the FULL, now-resolved
@@ -632,6 +693,94 @@ app.post('/api/test-cases', async (req, res) => {
     send({ type: 'error', message: err.message, detail: err.detail });
   } finally {
     busyIds.delete(slug);
+  }
+  res.end();
+});
+
+// Scans an entire live website and generates up to MAX_SCAN_TEST_CASES test cases from it in
+// one batch: crawl + plan scenarios (optionally grounded in an uploaded PRD/requirements doc
+// and free-text context), then run the SAME generate -> run -> heal-if-needed pipeline as a
+// single test case for each planned scenario, one at a time. Streams a "prompt"-shaped
+// progress log plus an "item" event as each test case finishes (so the UI can render cards
+// incrementally instead of waiting for the whole batch), then a final "done" summary.
+app.post('/api/scan-site', async (req, res) => {
+  const { url, context, maxTestCases, prdFileName, prdFileBase64 } = req.body || {};
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url is required' });
+  try {
+    new URL(url);
+  } catch {
+    return res.status(400).json({ error: 'url must be a valid absolute URL' });
+  }
+  const cappedMax = Math.min(Math.max(parseInt(maxTestCases, 10) || 10, 1), MAX_SCAN_TEST_CASES);
+
+  let prdPath = null;
+  if (prdFileBase64) {
+    if (!prdFileName || typeof prdFileName !== 'string') {
+      return res.status(400).json({ error: 'prdFileName is required when prdFileBase64 is provided' });
+    }
+    await fs.mkdir(UPLOADS_DIR, { recursive: true });
+    const safeName = `${Date.now().toString(36)}-${slugify(prdFileName.replace(/\.[^.]+$/, ''), 60)}${path.extname(prdFileName) || ''}`;
+    prdPath = path.join(UPLOADS_DIR, safeName);
+    try {
+      await fs.writeFile(prdPath, Buffer.from(prdFileBase64, 'base64'));
+    } catch (err) {
+      return res.status(400).json({ error: `could not save uploaded file: ${err.message}` });
+    }
+  }
+
+  const scanId = `scan-${Date.now().toString(36)}`;
+  console.log(`[scan-site] start: id=${scanId} url=${url} maxTestCases=${cappedMax} prd=${prdFileName || 'none'}`);
+  const { send, onEvent } = streamRoute(res);
+  busyIds.add(scanId);
+  try {
+    send({ type: 'progress', message: 'Scanning the website and planning test cases...' });
+    const { sitesSummary, scenarios } = await scanWebsiteAndPlan(
+      { url, context, maxTestCases: cappedMax, prdPath, prdFileName },
+      onEvent
+    );
+    send({ type: 'progress', message: `${sitesSummary} Planned ${scenarios.length} test case(s) - generating them now...` });
+
+    let generated = 0;
+    let failed = 0;
+    for (let i = 0; i < scenarios.length; i++) {
+      const scenario = scenarios[i];
+      const timestamp = Date.now().toString(36);
+      const slug = `${slugify(scenario.title || scenario.prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+      send({ type: 'progress', message: `[${i + 1}/${scenarios.length}] Generating: ${scenario.title}` });
+      busyIds.add(slug);
+      try {
+        const item = await generateTestCase(
+          {
+            url: scenario.url || url,
+            prompt: scenario.prompt,
+            context,
+            title: scenario.title,
+            testTypes: scenario.testTypes,
+            slug,
+          },
+          send,
+          onEvent
+        );
+        send({ type: 'item', item });
+        generated++;
+      } catch (err) {
+        console.error(`[scan-site] scenario "${scenario.title}" failed: ${err.message}`);
+        send({ type: 'progress', message: `[${i + 1}/${scenarios.length}] Failed: ${scenario.title} - ${err.message}` });
+        failed++;
+      } finally {
+        busyIds.delete(slug);
+      }
+    }
+
+    send({ type: 'done', item: { sitesSummary, planned: scenarios.length, generated, failed } });
+  } catch (err) {
+    console.error(`[scan-site] failed: ${err.message}`);
+    send({ type: 'error', message: err.message, detail: err.detail });
+  } finally {
+    busyIds.delete(scanId);
+    if (prdPath) {
+      fs.unlink(prdPath).catch(() => {});
+    }
   }
   res.end();
 });
