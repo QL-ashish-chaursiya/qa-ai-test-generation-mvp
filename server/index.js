@@ -52,8 +52,8 @@ const CLAUDE_MODEL = 'haiku';
 // `claude -p` browser session is ever alive at a time; this also naturally paces how fast
 // the target site gets hit, which helps with login/rate-limit flakiness under load.
 let aiQueueTail = Promise.resolve();
-function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
-  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs);
+function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
+  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs, agent);
   const scheduled = aiQueueTail.then(run, run);
   aiQueueTail = scheduled.then(
     () => {},
@@ -65,12 +65,22 @@ function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIME
 // Runs claude in streaming mode so the caller gets live progress (one JSON event per
 // line on stdout - tool calls, etc.) via onEvent, then resolves with the final "result"
 // event once the run completes (same shape as the non-streaming --output-format json).
-function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
+// `agent` (optional) runs the session AS one of this repo's official Playwright Test Agents
+// (.claude/agents/playwright-test-{generator,healer,planner}.md) instead of a raw prompt -
+// that file's own content becomes the system prompt (persona, tool restrictions, workflow,
+// and its own "Reliability standards"/quality rules), so anyone can add a project-specific
+// rule by editing that .md file directly, without touching this code. IMPORTANT: never pass
+// jsonSchema together with agent - an agent has its own native workflow (e.g. the generator
+// calls generator_write_test, the planner calls planner_save_plan) that ends in a free-text
+// summary, not schema-constrained JSON; forcing a schema on top of that has been observed to
+// make the model skip its real tool-driven work and just improvise a text answer instead.
+function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
   return new Promise((resolve, reject) => {
     const args = ['-p', prompt, '--model', CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
+    if (agent) args.push('--agent', agent);
     if (jsonSchema) args.push('--json-schema', JSON.stringify(jsonSchema));
 
-    const child = spawn('claude', args, { cwd: PROJECT_ROOT });
+    const child = spawn('claude', args, { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
     let buffer = '';
     let stderr = '';
     let finalResult = null;
@@ -231,35 +241,26 @@ async function enforceRowLocatorRobustness(outPath, onEvent) {
   const relPath = path.relative(PROJECT_ROOT, outPath);
   console.log(`[reliability-check] ${relPath}: ${violations.length} violation(s) found, requesting a fix`);
 
-  const fixPrompt = `You are fixing specific, mechanical robustness bugs in this Playwright test file. It has one or more of:
-- a table/list row, and/or an action button within a row, selected by hardcoded POSITION (a CSS ":nth-child(N)"/":last-child", or a Playwright ".nth(N)"/".last()"/".first()") instead of by that element's own stable, identifying content or state;
-- a vacuous/tautological assertion (e.g. "expect(true).toBe(true)") used as a silent fallback that makes the test pass without actually proving the scenario happened.
-
-These are real correctness bugs, not style nits:
-- For ROWS: the very action this test performs (blocking, approving, completing, deleting, etc.) is likely to change that row's order or remove it from view. On the next run, the same fixed position will point at a DIFFERENT, unrelated row - the test will then silently act on or verify the wrong user/item.
-- For ACTION BUTTONS: a button picked by position within a row (e.g. "the last button") often TOGGLES meaning based on that item's current state - e.g. it performs "Block" when the user is Active but the same-position button performs "Unblock" once already Blocked (same pattern for Enable/Disable, Activate/Deactivate, Approve/Reject). Picking it by position silently performs the WRONG action, or fails outright, depending on whatever state the item happens to be in when the test runs.
-- For VACUOUS ASSERTIONS: a test with a fallback like "if (couldn't find the button) { expect(true).toBe(true) }" reports as PASSING even when it never actually performed the scenario at all - this is worse than a failing test, because it hides real breakage behind a green checkmark.
+  // Routed through the official playwright-test-healer agent (--agent) rather than a custom
+  // prompt - fixing bugs in an existing test file is exactly its job, and its own "Reliability
+  // standards" section (editable in .claude/agents/playwright-test-healer.md) already covers
+  // these patterns, so they don't need to be duplicated here.
+  const fixPrompt = `This Playwright test file has specific, mechanical robustness bugs found by a static check - fix ONLY these, following your usual root-cause workflow (you do not need to reproduce a live failure first; this is a proactive fix of known-bad patterns, not a debugging session).
 
 File (absolute path): ${outPath}
 
 Violations found:
 ${violations.map((v) => `- Line ${v.line}: ${v.reason}\n  ${v.text}`).join('\n')}
 
-Current file contents:
-${code}
-${RELIABILITY_STANDARDS}
-Fix instructions:
-1. For a flagged ROW locator: replace it with one resolved via the row's own real, distinguishing content - e.g. capture the row's identifying cell text (name/email) into a variable BEFORE any mutating action, then re-locate that same row later via something like page.locator('tbody tr').filter({ hasText: capturedText }) rather than a fixed index. If the position was only used to pick WHICH row to act on (not to re-verify it later), select it by a real state condition instead (e.g. a status cell containing "Active"/"Pending"), not by index.
-2. For a flagged ACTION BUTTON locator: replace it with one resolved via a real, stable attribute that identifies that specific action regardless of position - an icon class (e.g. svg.lucide-ban vs svg.lucide-user-check), an aria-label, or a title attribute, verified against the live DOM if you need to (do not guess the class/attribute name). Read the item's current status first, and either target the correct action directly, or normalize to a known starting state first (e.g. perform the opposite action as setup if the item is already in the target state) before performing the test's intended action. Also check nearby assertions for the same substring-matching trap (e.g. a "Block User?" heading/text check without { exact: true } will also match "Unblock User?") and add { exact: true } where that risk applies.
-3. For a flagged VACUOUS ASSERTION: remove the escape-hatch entirely. Find the REAL selector for whatever it was trying to find (verify against the live DOM), and make that the actual, unguarded step - if the real element genuinely doesn't exist, the test should throw/fail there, not fall back to a no-op pass. Do not leave an if/else where one branch does nothing but still "succeeds."
-4. Do not change the test's overall intent, or anything not required to fix the flagged issue(s).
-5. Use the mcp__playwright-test__ browser tools to confirm the live DOM for whatever you need to fix correctly - do not guess selectors, icon classes, or attributes.
-6. Write the corrected file back with the Write tool to exactly this path: ${outPath}
-7. Do not ask any questions - make reasonable judgment calls, you are running unattended.
-8. Respond with ONLY the structured JSON result: this test's "title", a "description" (1-3 plain-English sentences summarizing what the test covers and what it proves - keep it as-is if the fix didn't change the test's overall intent), and its FULL ordered list of "steps" as they now exist in the corrected file, each restated as one short plain-English sentence with a "type" of "action" or "assertion".`;
+Why these matter:
+- For ROWS picked by position: the very action this test performs (blocking, approving, completing, deleting, etc.) is likely to change that row's order or remove it from view - on the next run, the same fixed position points at a DIFFERENT, unrelated row.
+- For ACTION BUTTONS picked by position: a button picked by position within a row often TOGGLES meaning based on that item's current state (e.g. "Block" becomes "Unblock" once already blocked) - picking it by position performs the WRONG action depending on live state.
+- For VACUOUS ASSERTIONS: a fallback like "if (couldn't find it) { expect(true).toBe(true) }" reports PASSING even when the scenario never happened at all - this is worse than a failing test, since it hides real breakage behind a green checkmark.
 
-  const result = await runClaudeStreaming(fixPrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
-  if (result.is_error || !result.structured_output) {
+Fix ONLY the flagged issue(s) above - do not change the test's overall intent or anything not required to fix them.`;
+
+  const result = await runClaudeStreaming(fixPrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
+  if (result.is_error) {
     console.error(`[reliability-check] ${relPath}: fix pass failed - ${result.result}`);
     return null;
   }
@@ -272,6 +273,11 @@ Fix instructions:
     return null;
   }
 
+  if (fixedCode === code) {
+    console.log(`[reliability-check] ${relPath}: fix pass made no changes`);
+    return null;
+  }
+
   const remaining = findPositionalRowViolations(fixedCode);
   console.log(
     remaining.length
@@ -279,13 +285,26 @@ Fix instructions:
       : `[reliability-check] ${relPath}: violation(s) resolved`
   );
 
-  return {
-    code: fixedCode,
-    steps: result.structured_output.steps,
-    title: result.structured_output.title,
-    description: result.structured_output.description,
-    usage: { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
-  };
+  const baseUsage = { costUsd: result.total_cost_usd || 0, durationMs: result.duration_ms || 0, tokens: extractTokenUsage(result) };
+  try {
+    // The healer's own turn ends in free text, not structured JSON - re-summarize the file
+    // now that it's been edited so meta.steps/title/description stay in sync with the code.
+    const summary = await summarizeTestFile(outPath, onEvent);
+    return {
+      code: fixedCode,
+      steps: summary.steps,
+      title: summary.title,
+      description: summary.description,
+      usage: {
+        costUsd: baseUsage.costUsd + summary.usage.costUsd,
+        durationMs: baseUsage.durationMs + summary.usage.durationMs,
+        tokens: mergeTokens(baseUsage.tokens, summary.usage.tokens),
+      },
+    };
+  } catch (err) {
+    console.error(`[reliability-check] ${relPath}: fix applied but could not re-summarize - ${err.message}`);
+    return { code: fixedCode, steps: null, title: null, description: null, usage: baseUsage };
+  }
 }
 
 function extractTokenUsage(result) {
@@ -354,6 +373,36 @@ function mergeTokens(a, b) {
   };
 }
 
+// Small, cheap follow-up call (deliberately NOT run through --agent) that reads an
+// already-written test file and extracts {title, description, steps} as schema-constrained
+// JSON. Needed because the official Playwright Test Agents (generator/healer, run via
+// --agent) end their own turn with a free-text summary, not structured output - forcing a
+// --json-schema onto one of those calls has been observed to make the model skip its real
+// tool-driven work and just improvise a text answer instead. This call does no browser work
+// and doesn't modify the file - it only reads and summarizes what's already there.
+async function summarizeTestFile(outPath, onEvent) {
+  const code = await fs.readFile(outPath, 'utf-8');
+  const prompt = `You are extracting a structured summary of an existing Playwright test file for a QA automation product. Do not modify the file - only read and summarize it.
+
+File contents (absolute path: ${outPath}):
+${code}
+
+Respond with ONLY the structured JSON result: a "title" for this test case (a specific, descriptive sentence-fragment naming the exact scenario and outcome, not generic), a "description" (1-3 plain-English sentences explaining what this test covers, what user-facing behavior it exercises, and what it proves when it passes), and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+
+  const result = await runClaudeStreaming(prompt, TEST_CASE_RESULT_SCHEMA, onEvent);
+  if (result.is_error || !result.structured_output) {
+    const err = new Error(result.result || 'Could not summarize the test file');
+    err.detail = result.result;
+    throw err;
+  }
+  return {
+    title: result.structured_output.title,
+    description: result.structured_output.description,
+    steps: result.structured_output.steps,
+    usage: { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
+  };
+}
+
 // Persists a fresh, fully-resolved step list against a test case, alongside whatever code
 // now actually implements it. Used any time something other than resolvePendingSteps ends
 // up changing the file (the healer patching a locator, intent-mode re-deriving the whole
@@ -387,29 +436,31 @@ async function generateTestCase({ url, prompt, context, title, testTypes, slug }
   const outPath = path.join(GENERATED_DIR, `${slug}.spec.ts`);
   const relOutPath = path.relative(PROJECT_ROOT, outPath);
   const typeGuidance = describeTestTypes(testTypes);
+  const testFileLabel = title || prompt;
 
-  const claudePrompt = `You are generating a single Playwright test file for a QA automation product.
+  // Task handed to the official playwright-test-generator agent (--agent), in the same
+  // <test-suite>/<test-name>/<test-file>/<body> shape its own description documents. Its
+  // persona, tool restrictions, workflow, and "Reliability standards" all come from
+  // .claude/agents/playwright-test-generator.md itself - nothing duplicated here, so a
+  // project-specific rule can be added by editing that file directly.
+  const claudePrompt = `Generate a Playwright test.
 
+<test-suite>${testFileLabel}</test-suite>
+<test-name>${prompt}</test-name>
+<test-file>${relOutPath}</test-file>
+<body>
 Target URL: ${url}
 Test intent (plain English): ${prompt}
-${context ? `\nContext for this test (credentials, session/OTP info, test data - use only what's relevant to this test's intent): ${context}\n` : ''}${typeGuidance ? `\nGenerate this test with the following focus (blend all listed if more than one applies):\n${typeGuidance}\n` : '\nFocus: the normal happy-path flow.\n'}
-${RELIABILITY_STANDARDS}
-Instructions:
-1. Use the mcp__playwright-test__ browser tools to actually navigate to the target URL and interact with the live page. Call mcp__playwright-test__generator_setup_page first, then use browser_* tools to perform each step. Verify real selectors against the live DOM - do not guess them. Pass a short, specific "intent" string with every browser tool call describing that step in plain English (e.g. "Click the Submit button") - this is shown to the user live as progress.
-2. Generate exactly ONE Playwright test (@playwright/test, TypeScript) implementing the scenario described above per the stated focus, with a real, meaningful assertion (expect(...)) that proves the scenario succeeded.
-3. Include ONLY the steps required for THIS test's intent - add a login step only if the intent explicitly targets an authenticated area/action that is unreachable without logging in first.
-4. Follow the conventions used elsewhere in this repo's tests/ directory: import { test, expect } from '@playwright/test'; one test.describe containing one test.
-5. Write the final file using the Write tool to exactly this absolute path: ${outPath}
-6. Do not ask any questions - make reasonable judgment calls yourself, you are running unattended.
-7. Respond with ONLY the structured JSON result: a "title" for this test case (a specific, descriptive sentence-fragment naming the exact scenario and outcome - e.g. "Admin can block an active user and see their status change to Blocked" rather than a generic "Block user test" - someone scanning a list of titles should be able to tell this test apart from other tests on the same page/feature without opening it), a "description" (1-3 plain-English sentences explaining what this test covers, what user-facing behavior it exercises, and what it proves when it passes - written for someone deciding whether this test is relevant without reading the code), and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+${context ? `Context (credentials, session/OTP info, test data - use only what's relevant): ${context}\n` : ''}${typeGuidance ? `Focus (blend all listed if more than one applies):\n${typeGuidance}\n` : 'Focus: the normal happy-path flow.\n'}Include ONLY the steps required for this intent - add a login step only if the intent explicitly targets an authenticated area/action unreachable without logging in first.
+</body>`;
 
   // Persisted (meta.generationPrompt) so the exact prompt used is still inspectable via the
   // API/meta.json later, even though it's no longer surfaced in the UI.
   send({ type: 'prompt', text: claudePrompt });
 
-  const result = await runClaudeStreaming(claudePrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
+  const result = await runClaudeStreaming(claudePrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-generator');
 
-  if (result.is_error || !result.structured_output) {
+  if (result.is_error) {
     const err = new Error(result.result || 'Claude run failed');
     err.detail = result.result;
     throw err;
@@ -419,24 +470,32 @@ Instructions:
   try {
     code = await fs.readFile(outPath, 'utf-8');
   } catch {
-    const err = new Error('Claude did not write the expected test file');
+    const err = new Error('The generator agent did not write the expected test file');
     err.detail = result.result;
     throw err;
   }
 
   let tokens = extractTokenUsage(result);
-  let costUsd = result.total_cost_usd;
-  let durationMs = result.duration_ms;
-  let finalTitle = result.structured_output.title || title || prompt;
-  let finalDescription = result.structured_output.description || '';
-  let rawSteps = result.structured_output.steps;
+  let costUsd = result.total_cost_usd || 0;
+  let durationMs = result.duration_ms || 0;
+
+  // The agent's own turn ends in free text, not structured JSON - a small separate
+  // (non-agent) call extracts title/description/steps from the file it just wrote.
+  send({ type: 'progress', message: 'Summarizing the generated test...' });
+  const summary = await summarizeTestFile(outPath, onEvent);
+  let finalTitle = summary.title || title || prompt;
+  let finalDescription = summary.description || '';
+  let rawSteps = summary.steps;
+  tokens = mergeTokens(tokens, summary.usage.tokens);
+  costUsd += summary.usage.costUsd;
+  durationMs += summary.usage.durationMs;
 
   // Static, code-shape corrective pass BEFORE ever running the test - catches position-only
   // locators and vacuous assertions regardless of whether the test happens to pass.
   const rowFix = await enforceRowLocatorRobustness(outPath, onEvent);
   if (rowFix) {
     code = rowFix.code;
-    rawSteps = rowFix.steps;
+    if (rowFix.steps) rawSteps = rowFix.steps;
     finalTitle = rowFix.title || finalTitle;
     finalDescription = rowFix.description || finalDescription;
     tokens = mergeTokens(tokens, rowFix.usage.tokens);
@@ -462,19 +521,29 @@ Instructions:
       tokens = mergeTokens(tokens, healerAttempt.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
       healSummary = healerAttempt.summary;
     }
-    if (healerAttempt.ok && !healerAttempt.gaveUp) {
+    if (healerAttempt.ok && healerAttempt.changed) {
       // The healer edits the file directly - re-check it against the same static rules
       // (it can just as easily reintroduce a hardcoded row position as generation did).
       const healRowFix = await enforceRowLocatorRobustness(outPath, onEvent);
-      if (healRowFix) {
+      if (healRowFix?.steps) {
         rawSteps = healRowFix.steps;
         finalTitle = healRowFix.title || finalTitle;
         finalDescription = healRowFix.description || finalDescription;
         tokens = mergeTokens(tokens, healRowFix.usage.tokens);
         costUsd += healRowFix.usage.costUsd;
         durationMs += healRowFix.usage.durationMs;
-      } else if (healerAttempt.steps?.length) {
-        rawSteps = healerAttempt.steps;
+      } else {
+        try {
+          const healedSummary = await summarizeTestFile(outPath, onEvent);
+          rawSteps = healedSummary.steps;
+          finalTitle = healedSummary.title || finalTitle;
+          finalDescription = healedSummary.description || finalDescription;
+          tokens = mergeTokens(tokens, healedSummary.usage.tokens);
+          costUsd += healedSummary.usage.costUsd;
+          durationMs += healedSummary.usage.durationMs;
+        } catch (err) {
+          console.error(`[test-cases] ${slug}: healed but could not re-summarize - ${err.message}`);
+        }
       }
 
       send({ type: 'progress', message: 'Re-running after the fix...' });
@@ -520,57 +589,78 @@ Instructions:
   return { ...meta, code };
 }
 
-const SCAN_PLAN_SCHEMA = {
-  type: 'object',
-  properties: {
-    sitesSummary: { type: 'string' },
-    scenarios: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          url: { type: 'string' },
-          title: { type: 'string' },
-          prompt: { type: 'string' },
-          testTypes: { type: 'array', items: { type: 'string', enum: ['happy-path', 'edge-case', 'security'] } },
-        },
-        required: ['url', 'title', 'prompt'],
-      },
-    },
-  },
-  required: ['sitesSummary', 'scenarios'],
-};
+// Turns one planner_save_plan test entry ({name, file, steps: [{perform, expect[]}]}) into
+// the plain-English "prompt" shape generateTestCase() expects - the same shape a human
+// would type into the single-test-case form.
+function planTestToPrompt(planTest) {
+  const steps = planTest.steps || [];
+  return steps
+    .map((s, i) => {
+      const expectText = Array.isArray(s.expect) && s.expect.length ? ` Expect: ${s.expect.join('; ')}.` : '';
+      return `${i + 1}. ${s.perform}${expectText}`;
+    })
+    .join('\n');
+}
 
 // Crawls a live site with a browser session, optionally reads an uploaded PRD/requirements
 // document, and plans up to `maxTestCases` distinct, high-value test scenarios grounded in
 // what the site actually does (not guessed) - the same live-DOM-verification standard
-// generation itself follows, just applied to picking WHAT to test rather than HOW.
+// generation itself follows, just applied to picking WHAT to test rather than HOW. Routed
+// through the official playwright-test-planner agent (--agent); its persona, exploration
+// workflow, and quality standards come from .claude/agents/playwright-test-planner.md.
 async function scanWebsiteAndPlan({ url, context, maxTestCases, prdPath, prdFileName }, onEvent) {
-  const claudePrompt = `You are planning a batch of Playwright test cases for a QA automation product by exploring a live website.
+  const claudePrompt = `Create a test plan by exploring this live website.
 
 Target URL (starting point): ${url}
 ${context ? `\nContext for this scan (credentials, session/OTP info, test data, priorities - use only what's relevant): ${context}\n` : ''}${
     prdPath
-      ? `\nA requirements/PRD document was uploaded: "${prdFileName}" (absolute path: ${prdPath}). Read it first (it may be a PDF, Word doc, or plain text) with the Read tool and use it to understand what features/flows matter most - prioritize test scenarios that cover requirements it describes.\n`
+      ? `\nA requirements/PRD document was uploaded: "${prdFileName}" (absolute path: ${prdPath}). Read it first (it may be a PDF, Word doc, or plain text) with the Read tool and use it to understand what features/flows matter most - prioritize scenarios that cover requirements it describes.\n`
       : ''
   }
-Instructions:
-1. Use the mcp__playwright-test__ browser tools to actually explore the live site - call mcp__playwright-test__generator_setup_page first, then navigate through its main pages/nav links/primary flows (forms, listings, auth, CRUD screens, checkout, dashboards, etc.) to understand what it actually does. Verify real pages/elements exist - do not invent scenarios for features you haven't actually seen on the site. Pass a short "intent" string with each browser tool call.
-2. Do not attempt to exhaustively crawl every page - explore enough of the site's main navigation and distinct page types to identify its most important, distinct user-facing flows.
-3. Based on what you actually found (and the PRD/context above, if given), select up to ${maxTestCases} of the most valuable, DISTINCT test scenarios - prioritize covering different features/flows over minor variations of the same one. Each scenario must target a real page you actually visited.
-4. For each scenario, write it in the exact same shape a human would type into this product's single-test-case generator: a specific "url" (the real page this scenario starts from), a "title" (specific sentence-fragment naming the exact scenario and outcome, not generic), a "prompt" (plain-English description of the scenario to verify, written the same way a QA person would describe a test case), and "testTypes" (one or more of "happy-path"/"edge-case"/"security" - default to ["happy-path"] if none clearly apply).
-5. Do not ask any questions - make reasonable judgment calls, you are running unattended.
-6. Respond with ONLY the structured JSON result: a "sitesSummary" (1-2 sentences on what the site is and what you explored) and "scenarios" (the ordered list described above, most valuable first, capped at ${maxTestCases}).`;
+Do not attempt to exhaustively crawl every page - explore enough of the site's main navigation and distinct page types to identify its most important, distinct user-facing flows, then plan at most ${maxTestCases} of the most valuable, DISTINCT scenarios (prioritize covering different features/flows over minor variations of the same one). Each scenario must target something you actually saw on the live site - do not invent scenarios for features you haven't verified exist.`;
 
-  const result = await runClaudeStreaming(claudePrompt, SCAN_PLAN_SCHEMA, onEvent, SCAN_TIMEOUT_MS);
-  if (result.is_error || !result.structured_output) {
+  // The planner's own turn ends in a saved markdown file + free text, not structured JSON -
+  // capture the exact structured arguments it passed to planner_save_plan directly from the
+  // tool-call event instead (this is real data the agent already produced, not a guess).
+  let capturedPlan = null;
+  const wrappedOnEvent = (event) => {
+    if (event.type === 'assistant') {
+      for (const block of event.message?.content || []) {
+        if (block.type === 'tool_use' && block.name === 'mcp__playwright-test__planner_save_plan') {
+          capturedPlan = block.input;
+        }
+      }
+    }
+    onEvent(event);
+  };
+
+  const result = await runClaudeStreaming(claudePrompt, null, wrappedOnEvent, SCAN_TIMEOUT_MS, 'playwright-test-planner');
+  if (result.is_error) {
     const err = new Error(result.result || 'Claude run failed');
     err.detail = result.result;
     throw err;
   }
+  if (!capturedPlan) {
+    const err = new Error('The planner agent did not save a test plan');
+    err.detail = result.result;
+    throw err;
+  }
 
-  const scenarios = (result.structured_output.scenarios || []).slice(0, maxTestCases);
-  return { sitesSummary: result.structured_output.sitesSummary, scenarios };
+  // Best-effort cleanup of the markdown file the planner wrote to disk - its structured
+  // content (captured above) is what this product actually uses going forward.
+  if (capturedPlan.fileName) {
+    fs.unlink(path.resolve(PROJECT_ROOT, capturedPlan.fileName)).catch(() => {});
+  }
+
+  const scenarios = [];
+  for (const suite of capturedPlan.suites || []) {
+    for (const t of suite.tests || []) {
+      if (scenarios.length >= maxTestCases) break;
+      scenarios.push({ url, title: t.name, prompt: planTestToPrompt(t), testTypes: ['happy-path'] });
+    }
+  }
+
+  return { sitesSummary: capturedPlan.overview || `Test plan for ${url}`, scenarios };
 }
 
 // Catches a test file up with whatever steps were added/edited (in meta.steps, marked
@@ -1086,66 +1176,36 @@ app.post('/api/run-intent', async (req, res) => {
   res.json(body);
 });
 
-const HEALER_RESULT_SCHEMA = {
-  type: 'object',
-  properties: {
-    attemptedFix: { type: 'boolean' },
-    summary: { type: 'string' },
-    gaveUp: { type: 'boolean' },
-    // Only meaningful when a fix was actually applied (gaveUp: false) - the file's real
-    // steps after the fix, so a caller can keep a test case's step list in sync with it.
-    steps: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          text: { type: 'string' },
-          type: { type: 'string', enum: ['action', 'assertion'] },
-        },
-        required: ['text', 'type'],
-      },
-    },
-  },
-  required: ['attemptedFix', 'summary', 'gaveUp'],
-};
-
-// Replicates the playwright-test-healer agent's documented workflow (test_run /
-// test_debug / browser_generate_locator / inspect / Edit-in-place / re-run) against
-// one specific failing test file, using the same MCP healer tools it's defined with.
+// Invokes the official playwright-test-healer agent (--agent) against one specific failing
+// test file. Its persona, tool restrictions (test_run/test_debug/browser_snapshot/Edit/...),
+// workflow, and "Reliability standards"/common-root-causes list all come from
+// .claude/agents/playwright-test-healer.md - nothing duplicated here. Since an agent's own
+// turn ends in free text rather than structured JSON (forcing --json-schema onto it has been
+// observed to make it skip its real tool-driven work), "did it actually fix anything" is
+// determined the honest way: compare the file's content before and after, then let the
+// caller re-run the test for the real ground truth rather than trusting a self-reported flag.
 async function runHealer(resolvedTestPath, relFile, lastFailureOutput, onEvent = () => {}) {
-  const currentCode = await fs.readFile(resolvedTestPath, 'utf-8');
+  const beforeCode = await fs.readFile(resolvedTestPath, 'utf-8');
 
-  const claudePrompt = `You are acting as this project's Playwright test healer, following the exact workflow defined in .claude/agents/playwright-test-healer.md.
+  const claudePrompt = `This Playwright test is failing - debug and fix it using your usual workflow.
 
 Failing test file (absolute path): ${resolvedTestPath}
 
-Current file contents:
-${currentCode}
-
 Failure output from the last run:
 ${lastFailureOutput}
-${RELIABILITY_STANDARDS}
-When fixing, actively check whether the failure is actually caused by one of the patterns above (a dead/generic selector, a position-only locator that now points at the wrong row because state changed, a dialog handler wired up after its trigger, or a fixed-delay wait that's too short/long) - these are the most common root causes, not just a one-off drifted attribute.
 
-Your workflow:
-1. Use mcp__playwright-test__test_run and mcp__playwright-test__test_debug on this test to reproduce the failure and pause on it.
-2. Use browser_snapshot, browser_evaluate, browser_console_messages, browser_network_request(s), and browser_generate_locator to find the root cause: has a selector drifted, is there a timing/synchronization issue, or has the assertion gone stale?
-3. Edit the test file in place (Edit/MultiEdit/Write) to fix ONLY what's broken - updated locators, wait conditions, or assertions.
-4. Do NOT change the test's overall intent or add fundamentally new steps/flow logic. If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - set gaveUp: true instead and explain why in summary.
-5. Use mcp__playwright-test__test_run again to re-run the test and confirm your fix actually works before finishing.
-6. If you cannot confidently fix it within 2 attempts, revert any partial edit and set gaveUp: true.
-7. If you applied a fix (gaveUp: false), also include "steps": the FULL ordered list of the file's real actions/assertions after your fix, each restated as one short plain-English sentence with a "type" of "action" or "assertion". Omit it if you gave up.
-8. Do not ask any questions - make reasonable judgment calls, you are running unattended.
-9. Respond with ONLY the structured JSON result matching the required schema.`;
+Do NOT change the test's overall intent or add fundamentally new steps/flow logic - fix only what's actually broken (locators, waits, assertions). If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - leave the file as it is and explain why in your final summary instead.`;
 
   try {
-    const result = await runClaudeStreaming(claudePrompt, HEALER_RESULT_SCHEMA, onEvent);
-    if (result.is_error || !result.structured_output) {
+    const result = await runClaudeStreaming(claudePrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
+    if (result.is_error) {
       return { ok: false, error: 'Healer run failed', detail: result.result };
     }
+    const afterCode = await fs.readFile(resolvedTestPath, 'utf-8').catch(() => beforeCode);
     return {
       ok: true,
-      ...result.structured_output,
+      changed: afterCode !== beforeCode,
+      summary: result.result || '(no summary returned)',
       costUsd: result.total_cost_usd,
       durationMs: result.duration_ms,
       tokens: extractTokenUsage(result),
@@ -1237,20 +1297,29 @@ app.post('/api/run-adaptive', async (req, res) => {
   send({ type: 'progress', message: 'Test failed - trying to heal it (locator/assertion patch)...' });
   const healerAttempt = await runHealer(resolvedPath, relFile, staticResult.output, onEvent);
   rungs.healer = healerAttempt;
-  if (healerAttempt.ok && !healerAttempt.gaveUp) {
+  if (healerAttempt.ok && healerAttempt.changed) {
     const healerRerun = await runPlaywrightTest(relFile);
     rungs.healer.rerun = healerRerun;
     if (healerRerun.passed) {
-      // The healer edits the file directly - keep meta.steps in sync with what it
-      // actually changed, so the step list doesn't silently drift from the real test.
-      if (meta && healerAttempt.steps?.length) {
+      // The healer edits the file directly and its own turn ends in free text, not
+      // structured JSON - re-summarize the file so meta.steps doesn't silently drift
+      // from what the healer actually changed.
+      if (meta) {
         try {
           const healedCode = await fs.readFile(resolvedPath, 'utf-8');
-          rungs.healer.item = await syncMetaSteps(meta, healedCode, healerAttempt.steps, {
-            costUsd: healerAttempt.costUsd,
-            durationMs: healerAttempt.durationMs,
-            tokens: healerAttempt.tokens,
-          });
+          const summary = await summarizeTestFile(resolvedPath, onEvent);
+          rungs.healer.item = await syncMetaSteps(
+            meta,
+            healedCode,
+            summary.steps,
+            {
+              costUsd: healerAttempt.costUsd + summary.usage.costUsd,
+              durationMs: healerAttempt.durationMs + summary.usage.durationMs,
+              tokens: mergeTokens(healerAttempt.tokens, summary.usage.tokens),
+            },
+            summary.title,
+            summary.description
+          );
         } catch (err) {
           console.error(`[run-adaptive] failed to sync meta.steps after healer fix: ${err.message}`);
         }
