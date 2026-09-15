@@ -92,6 +92,7 @@
   .card-actions { margin-top: 14px; }
   .pass { color: #198754; font-weight: 700; }
   .fail { color: #c0392b; font-weight: 700; }
+  .skip { color: #b8860b; font-weight: 700; }
   .run-result { margin-top: 10px; font-size: 13px; }
   a.report-link { display: inline-block; margin-top: 6px; }
   .recording { margin-top: 12px; }
@@ -179,6 +180,26 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
+
+  // Maps a handful of common raw/technical error messages (busy-guard text, ENOENT, network
+  // failures) to something a non-developer can act on; anything unrecognized still shows the
+  // real message rather than hiding it, just with a plain "Error:" prefix.
+  function friendlyRunError(message) {
+    if (!message) return 'Error: something went wrong running this test.';
+    if (/currently generating\/running\/healing/i.test(message)) {
+      return 'This test is already running - wait for it to finish before running it again.';
+    }
+    if (/file not found/i.test(message)) {
+      return 'Error: the test file could not be found on disk (it may have been deleted).';
+    }
+    if (/ENOENT/i.test(message)) {
+      return 'Error: a file this run needed was missing.';
+    }
+    if (/Failed to fetch|NetworkError|ECONNREFUSED/i.test(message)) {
+      return 'Error: could not reach the server - check that it is still running, then try again.';
+    }
+    return 'Error: ' + message;
+  }
 
   // ---------- shared: ndjson streaming request ----------
   // onExtra (optional) receives any event that isn't progress/done/error as-is (e.g.
@@ -547,11 +568,33 @@
     renderSteps(card, item);
   }
 
-  const RUNG_LABEL = {
-    static: 'passed immediately (no healing needed)',
-    healer: "failed, but the healer fixed it (locator/assertion patch)",
-    intent: "failed and the healer couldn't fix it - recovered by live intent re-derivation",
-  };
+  // Only used by the Self Heal button's result - 'healer' means two very different things
+  // depending on whether it actually fixed the test (finalPassed) or correctly refused to
+  // fake a fix and marked it test.fixme() instead (skipped), so compute the badge/label
+  // together rather than keying off resolvedAtRung alone (that previously produced the
+  // self-contradictory "FAILED - the healer fixed it" for the skipped case).
+  function describeOutcome(data) {
+    if (data.skipped) {
+      return {
+        badgeText: 'SKIPPED',
+        badgeClass: 'skip',
+        label: "the healer found a genuine bug in the application (not a test defect) and marked it test.fixme() rather than forcing a pass - see the reason below and in the generated code's comment",
+      };
+    }
+    const badgeText = data.finalPassed ? 'PASSED' : 'FAILED';
+    const badgeClass = data.finalPassed ? 'pass' : 'fail';
+    const RUNG_LABEL = {
+      static: 'passed immediately (no healing needed)',
+      resolvePending: 'applied your pending step edits',
+      healer: data.finalPassed
+        ? 'failed initially, but the healer fixed it (locator/assertion patch)'
+        : 'failed, and the healer could not fix it',
+      intent: data.finalPassed
+        ? "the healer's fix didn't hold, but live intent re-derivation completed the flow"
+        : "failed even after live intent re-derivation - this needs a closer look, see the report/video below",
+    };
+    return { badgeText, badgeClass, label: RUNG_LABEL[data.resolvedAtRung] || data.resolvedAtRung };
+  }
 
   function renderCard(item) {
     const card = el('div', { class: 'card' });
@@ -579,7 +622,9 @@
         class: item.verified ? 'card-meta' : 'error-text',
         text: item.verified
           ? (item.healed ? 'Verified: failed on first run, auto-healed, now passing.' : 'Verified: passed on first run.')
-          : 'Verified: still failing after an automatic heal attempt - see Run/Self Heal below.',
+          : (item.skipped
+            ? 'Not verified: marked test.fixme() and skipped - the healer found a genuine data/environment blocker it could not fix (see the generated code\'s comment for why), not a broken selector or timing issue.'
+            : 'Verified: still failing after an automatic heal attempt - use Run Test below to see the real reason, or Self Heal to try again.'),
       });
       card.appendChild(verifyNote);
     }
@@ -616,7 +661,8 @@
     renderSteps(card, item);
 
     const actions = el('div', { class: 'card-actions' });
-    const runBtn = el('button', { class: 'secondary', text: 'Run Test (self-heal)' });
+    const runBtn = el('button', { class: 'secondary', text: 'Run Test' });
+    const healBtn = el('button', { class: 'secondary', text: 'Self Heal' });
     const deleteBtn = el('button', { class: 'danger', text: 'Delete' });
     const runResultEl = el('div', { class: 'run-result' });
 
@@ -636,13 +682,70 @@
       }
     });
 
-    runBtn.addEventListener('click', async () => {
-      const current = JSON.parse(card.dataset.item);
+    function beginRun() {
       runResultEl.className = 'run-result';
       runResultEl.innerHTML = '';
       const { feed, log } = makeLogFeed();
       runResultEl.appendChild(feed);
       runBtn.disabled = true;
+      healBtn.disabled = true;
+      return { feed, log };
+    }
+    function endRun() {
+      runBtn.disabled = false;
+      healBtn.disabled = false;
+    }
+
+    // Plain run: no healing, no intent-mode - shows exactly what really happened (including
+    // the real Playwright failure output) so you can see the actual reason a test is failing
+    // and fix the app/test yourself, instead of the run being auto-patched past the failure.
+    runBtn.addEventListener('click', async () => {
+      const current = JSON.parse(card.dataset.item);
+      const { feed, log } = beginRun();
+      try {
+        const data = await streamRequest(
+          '/api/run-test',
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: current.file }) },
+          log
+        );
+        if (data.syncedItem) applyUpdatedItem(card, data.syncedItem);
+
+        feed.classList.remove('open');
+        const badgeText = data.skipped ? 'SKIPPED' : data.passed ? 'PASSED' : 'FAILED';
+        const badgeClass = data.skipped ? 'skip' : data.passed ? 'pass' : 'fail';
+        const label = data.skipped
+          ? 'this test is marked test.fixme() - it did not run'
+          : data.passed
+            ? 'the test ran and passed, no changes made'
+            : 'the test ran and failed - nothing was auto-healed, this is the real, unmodified reason';
+        runResultEl.appendChild(el('span', { class: badgeClass, text: badgeText }));
+        runResultEl.appendChild(document.createTextNode(' - ' + label));
+
+        if (!data.passed && !data.skipped && data.output) {
+          const details = el('details');
+          details.appendChild(el('summary', { text: 'View real failure output' }));
+          details.appendChild(el('pre', { text: data.output }));
+          runResultEl.appendChild(details);
+        }
+        if (!data.skipped) {
+          const reportLink = el('a', { class: 'report-link', href: data.reportUrl, target: '_blank', text: 'View full HTML report (trace/screenshots)' });
+          runResultEl.appendChild(document.createElement('br'));
+          runResultEl.appendChild(reportLink);
+        }
+        if (data.videoUrl) runResultEl.appendChild(renderRecording(data.videoUrl));
+      } catch (err) {
+        runResultEl.className = 'run-result error-text';
+        runResultEl.textContent = friendlyRunError(err.message);
+      } finally {
+        endRun();
+      }
+    });
+
+    // Full self-heal ladder: resolves pending steps, runs, and if that fails, tries to
+    // patch/re-derive a working version - see describeOutcome() for how the result is labeled.
+    healBtn.addEventListener('click', async () => {
+      const current = JSON.parse(card.dataset.item);
+      const { feed, log } = beginRun();
       try {
         const data = await streamRequest(
           '/api/run-adaptive',
@@ -657,30 +760,36 @@
         if (syncedItem) applyUpdatedItem(card, syncedItem);
 
         feed.classList.remove('open');
-        runResultEl.appendChild(el('span', { class: data.finalPassed ? 'pass' : 'fail', text: data.finalPassed ? 'PASSED' : 'FAILED' }));
-        runResultEl.appendChild(document.createTextNode(' - ' + (RUNG_LABEL[data.resolvedAtRung] || data.resolvedAtRung)));
-        if (data.rungs?.healer) {
+        const outcome = describeOutcome(data);
+        runResultEl.appendChild(el('span', { class: outcome.badgeClass, text: outcome.badgeText }));
+        runResultEl.appendChild(document.createTextNode(' - ' + outcome.label));
+        if (data.rungs?.healer?.summary) {
           runResultEl.appendChild(document.createElement('br'));
-          runResultEl.appendChild(el('span', { text: 'Healer: ' + data.rungs.healer.summary }));
+          runResultEl.appendChild(el('span', { text: (data.skipped ? 'Why: ' : 'Healer: ') + data.rungs.healer.summary }));
         }
         if (data.rungs?.writeBack?.applied) {
           runResultEl.appendChild(document.createElement('br'));
           runResultEl.appendChild(el('span', { text: 'Test file rewritten with the working version - future runs will be fast again.' }));
         }
-        const reportLink = el('a', { class: 'report-link', href: data.reportUrl, target: '_blank', text: 'View full HTML report (trace/screenshots)' });
-        runResultEl.appendChild(document.createElement('br'));
-        runResultEl.appendChild(reportLink);
-
+        // A skipped (test.fixme()) run never actually executed, so there's no real trace,
+        // screenshot, or video to inspect - Playwright's own HTML report shows a confusing
+        // "No tests found"-looking empty state for a skip-only run, so don't link to it here.
+        if (!data.skipped) {
+          const reportLink = el('a', { class: 'report-link', href: data.reportUrl, target: '_blank', text: 'View full HTML report (trace/screenshots)' });
+          runResultEl.appendChild(document.createElement('br'));
+          runResultEl.appendChild(reportLink);
+        }
         if (data.videoUrl) runResultEl.appendChild(renderRecording(data.videoUrl));
       } catch (err) {
         runResultEl.className = 'run-result error-text';
-        runResultEl.textContent = 'Error: ' + err.message;
+        runResultEl.textContent = friendlyRunError(err.message);
       } finally {
-        runBtn.disabled = false;
+        endRun();
       }
     });
 
     actions.appendChild(runBtn);
+    actions.appendChild(healBtn);
     actions.appendChild(deleteBtn);
     card.appendChild(actions);
     card.appendChild(runResultEl);
