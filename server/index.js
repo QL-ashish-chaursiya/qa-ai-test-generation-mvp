@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs/promises');
+const fsSync = require('fs');
+const os = require('os');
 const { execFile, spawn } = require('child_process');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
@@ -9,11 +11,24 @@ const GENERATED_DIR = path.join(TESTS_DIR, 'generated');
 const INTENT_MANIFESTS_DIR = path.join(PROJECT_ROOT, 'specs', 'intent-manifests');
 const TEST_RESULTS_DIR = path.join(PROJECT_ROOT, 'test-results');
 const JSON_REPORTS_DIR = path.join(PROJECT_ROOT, '.playwright-json-reports');
+const UPLOADS_DIR = path.join(PROJECT_ROOT, '.uploads');
 const CLAUDE_TIMEOUT_MS = 5 * 60 * 1000;
+// Site scans drive a much longer-running agent session (crawling several pages, planning,
+// then generating multiple test cases) - give it far more headroom than a single generation.
+const SCAN_TIMEOUT_MS = 20 * 60 * 1000;
 const TEST_RUN_TIMEOUT_MS = 2 * 60 * 1000;
+const MAX_SCAN_TEST_CASES = 30;
+
+// Test-case ids currently being generated/run/healed - guards against a client deleting
+// (or otherwise mutating) a test case out from under an in-flight operation on it, which
+// otherwise crashes that operation with an ENOENT reading a file that was just deleted.
+const busyIds = new Set();
 
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+// Raised above the default 5mb so an uploaded PRD/requirements doc (base64-encoded in the
+// JSON body for the site-scan feature) has room - a scanned PDF can be a few MB before
+// base64's ~33% overhead.
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/report', express.static(path.join(PROJECT_ROOT, 'playwright-report')));
 // Serves recorded run videos/screenshots so the UI can play them back after a run.
@@ -29,15 +44,91 @@ function slugify(text, maxLen = 60) {
 
 const CLAUDE_MODEL = 'haiku';
 
+// Playwright's MCP server (spawned internally by `claude -p ... --agent playwright-test-*`)
+// refuses to start on Node < 20 ("Playwright requires Node.js 20 or higher"). Depending on how
+// this server process itself was launched, the Node resolved via PATH can be an older system
+// install even when a newer nvm-installed Node is available - which silently breaks every
+// agent's browser/generator/healer tools (they just report having no tools, or worse, some
+// models improvise fake output instead of erroring). Look for a Node 20+ nvm install and put
+// its bin dir first on PATH for the `claude` child process/its own children, regardless of
+// which Node started this server.
+function resolveClaudeSpawnPath() {
+  const currentMajor = Number(process.versions.node.split('.')[0]);
+  if (currentMajor >= 20) return process.env.PATH;
+  try {
+    const nvmNodeDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
+    const candidates = fsSync
+      .readdirSync(nvmNodeDir)
+      .filter((v) => {
+        const m = v.match(/^v(\d+)\./);
+        return m && Number(m[1]) >= 20;
+      })
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    if (candidates.length) {
+      const binDir = path.join(nvmNodeDir, candidates[0], 'bin');
+      console.warn(`[claude] System Node is v${process.versions.node} (Playwright MCP needs 20+) - prepending ${binDir} to PATH for agent runs.`);
+      return `${binDir}:${process.env.PATH}`;
+    }
+  } catch {
+    // no nvm install found - fall through and let it fail loudly downstream if it must
+  }
+  console.warn(`[claude] System Node is v${process.versions.node} and no Node 20+ nvm install was found - Playwright MCP tools will fail to start.`);
+  return process.env.PATH;
+}
+const CLAUDE_SPAWN_PATH = resolveClaudeSpawnPath();
+
+// Every runClaudeStreaming call spawns its own `claude -p` process, which in turn spawns
+// its own Playwright MCP server for the mcp__playwright-test__ browser tools - and those
+// all share ONE fixed Chrome profile directory (~/.cache/ms-playwright-mcp/mcp-chrome-*).
+// Only one process can hold that profile's lock at a time, so two of these running at once
+// (two generations, or a generate overlapping a run/heal) causes the second one to hang
+// indefinitely waiting on that lock - which looks exactly like "stuck starting the browser"
+// with no error, no timeout, nothing. Serialize every call through one queue so at most one
+// `claude -p` browser session is ever alive at a time; this also naturally paces how fast
+// the target site gets hit, which helps with login/rate-limit flakiness under load.
+let aiQueueTail = Promise.resolve();
+function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
+  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs, agent);
+  const scheduled = aiQueueTail.then(run, run);
+  aiQueueTail = scheduled.then(
+    () => {},
+    () => {}
+  );
+  return scheduled;
+}
+
 // Runs claude in streaming mode so the caller gets live progress (one JSON event per
 // line on stdout - tool calls, etc.) via onEvent, then resolves with the final "result"
 // event once the run completes (same shape as the non-streaming --output-format json).
-function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS) {
+// `agent` (optional) runs the session AS one of this repo's official Playwright Test Agents
+// (.claude/agents/playwright-test-{generator,healer,planner}.md) instead of a raw prompt -
+// that file's own content becomes the system prompt (persona, tool restrictions, workflow,
+// and its own "Reliability standards"/quality rules), so anyone can add a project-specific
+// rule by editing that .md file directly, without touching this code. IMPORTANT: never pass
+// jsonSchema together with agent - an agent has its own native workflow (e.g. the generator
+// calls generator_write_test, the planner calls planner_save_plan) that ends in a free-text
+// summary, not schema-constrained JSON; forcing a schema on top of that has been observed to
+// make the model skip its real tool-driven work and just improvise a text answer instead.
+function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
   return new Promise((resolve, reject) => {
-    const args = ['-p', prompt, '--model', CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
+    const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
+    // Never force --model on an agent run: each agent declares its own `model:` in its
+    // .claude/agents/*.md frontmatter (generator/healer/planner all use sonnet), and a
+    // smaller forced model has been observed to make the agent skip its real tool-driven
+    // work (browser navigation, generator_write_test, etc.) and just improvise a text
+    // answer instead. Only the raw, non-agent prompts use the configured CLAUDE_MODEL.
+    if (agent) {
+      args.push('--agent', agent);
+    } else {
+      args.push('--model', CLAUDE_MODEL);
+    }
     if (jsonSchema) args.push('--json-schema', JSON.stringify(jsonSchema));
 
-    const child = spawn('claude', args, { cwd: PROJECT_ROOT });
+    const child = spawn('claude', args, {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, PATH: CLAUDE_SPAWN_PATH },
+    });
     let buffer = '';
     let stderr = '';
     let finalResult = null;
@@ -109,6 +200,24 @@ function toProgressMessage(event) {
   return null;
 }
 
+// Pulls a live screenshot out of a browser_take_screenshot tool result, if this event is
+// one - lets the UI show a "live view" of the site the agent is actually looking at, not
+// just a text log of its actions. Tool results land on a "user"-type stream-json event
+// (the CLI's own protocol for feeding a tool's output back to the model), with the image
+// as a base64 content block alongside the tool's normal text summary.
+function extractScreenshot(event) {
+  if (event.type !== 'user' || !event.message?.content) return null;
+  for (const block of event.message.content) {
+    if (block.type !== 'tool_result' || !Array.isArray(block.content)) continue;
+    for (const inner of block.content) {
+      if (inner.type === 'image' && inner.source?.type === 'base64' && inner.source.data) {
+        return { mediaType: inner.source.media_type || 'image/png', data: inner.source.data };
+      }
+    }
+  }
+  return null;
+}
+
 const TEST_TYPE_GUIDANCE = {
   'happy-path': 'The normal, expected successful user flow with valid input - the straightforward "this works" case.',
   'edge-case': 'Boundary conditions and unusual-but-valid input: very long strings, empty optional fields, special characters, minimum/maximum values - things that should still be handled gracefully.',
@@ -118,6 +227,133 @@ const TEST_TYPE_GUIDANCE = {
 function describeTestTypes(testTypes) {
   if (!testTypes || !testTypes.length) return '';
   return testTypes.map((t) => `- ${t}: ${TEST_TYPE_GUIDANCE[t] || t}`).join('\n');
+}
+
+// Shared reliability standards injected into every prompt that generates or edits test
+// code (initial generation, step resolution, intent-mode, and the healer) - these are the
+// concrete, recurring ways generated tests break in practice (dead selectors copied from an
+// accessibility snapshot, dialogs wired up too late, fixed sleeps papering over real waits,
+// and row/position locators that silently target the wrong element once state changes)
+// rather than generic "write good tests" advice.
+const RELIABILITY_STANDARDS = `
+Reliability standards - apply these to every locator and wait in the file, they are the most common reasons generated tests are flaky or wrong:
+1. Strong selectors: verify every locator against the real live DOM before using it. Prefer, in order: a stable test id/data-testid attribute, ARIA role + accessible name (getByRole with { name }), unique visible text, then a tightly scoped CSS selector as a last resort. Never use a bare tag/CSS guess like locator('generic') or other pseudo-role names lifted from an accessibility snapshot - "generic" and similar are snapshot role labels, not real selectors, and will silently match nothing.
+2. No position-only locators for anything whose position can change: avoid nth(0)/nth(1)/first()/last() to pick a row/item unless it is truly the only way to disambiguate AND its position is guaranteed stable. If a list/table row's order or membership can change between when the test is generated and when it runs (e.g. an item moves, gets approved/completed, is removed, or new rows are added above it), identify the target by its OWN distinguishing content at run time - its text, id, or current status/state - never by a hardcoded index or "the first row". Example: for approving a pending item, filter rows by their actual pending/unapproved status (e.g. filter({ hasText: 'Pending' }), or a status-cell/attribute check) so a later run correctly targets whichever row is still pending, not whatever happened to be first during generation.
+3. Dialogs: register page.on('dialog', ...) (or page.once('dialog', ...)) BEFORE the action that triggers it, never after. Playwright auto-dismisses a dialog if no listener is attached the moment it appears, so attaching the handler after the triggering click is a no-op that silently cancels the dialog every run.
+4. No fixed delays: never use page.waitForTimeout(...) or any sleep to wait for content, navigation, or an element to become ready. Rely on Playwright's built-in auto-waiting on actions and expect(...) assertions, and when something extra is needed, wait for the actual condition instead of a duration - locator.waitFor() for an element to appear/detach, page.waitForResponse() for a specific network call, page.waitForURL() for navigation, or page.waitForLoadState('networkidle') only when the page has no long-lived polling/websocket traffic that would keep it from ever going idle.
+5. Skeleton/loading placeholders: a row or card existing in the DOM and being "visible" does NOT mean its real data has loaded - many apps render an empty shimmer/skeleton placeholder for each row immediately, then fill in real text a moment later once a request resolves. Before reading a cell's text or matching on its content (e.g. a status column, or a name column you're about to capture as an identifier), first confirm the content is real - e.g. wrap the read in expect(async () => { const t = await cell.textContent(); expect(t?.trim()).not.toBe(''); }).toPass({ timeout: 15000 }) - instead of assuming toBeVisible() on the row already implies its data is populated, and don't assume a generic waitForSelector('table') means the rows inside it are populated.
+6. Toggle/paired-state action buttons: an icon-only button in a row or action menu can silently flip MEANING based on the item's current state - e.g. the same-position button is "Block" when a user is Active but becomes "Unblock" once that user is already Blocked ("Enable"/"Disable", "Activate"/"Deactivate", "Approve"/"Reject" follow the same pattern). Never assume the Nth button, or "the last button", always performs one specific action - identify it by something that encodes ITS CURRENT MEANING (a real icon class, aria-label, or title attribute unique to that action, verified against the live DOM). Read the item's current status first, and either target the correct action directly or normalize to a known starting state first (e.g. unblock as setup, if the item happens to already be blocked) before performing the intended action. This applies even when the row itself was already picked correctly by content, not just when it's picked by position.
+7. Paired-opposite-label substring matching: role/text matchers do a case-insensitive SUBSTRING match by default, not an exact match. A heading or button named "Block User?" / "Block" will also match against "Unblock User?" / "Unblock" (since "Unblock" contains "block" as a substring), silently mis-verifying which dialog/action actually happened. Whenever the expected text could be a substring of an opposite-action label (Block/Unblock, Enable/Disable, Approve/Disapprove, etc.), pass { exact: true } to getByRole/getByText rather than relying on the default substring match.
+8. Scope form fields to their open context: a generic locator like page.locator('textarea') or page.locator('input') matches ANY such element anywhere on the page, not just the one inside the dialog/modal/panel currently open - if the page can have more than one (e.g. a "reason" textarea in both a Block dialog and an Unblock dialog), scope the locator to the specific open dialog/container, or match it by its own accessible name (e.g. getByRole('textbox', { name: 'Reason for Blocking *' })), instead of matching page-wide.
+9. NEVER write a vacuous/escape-hatch assertion: no "if I couldn't find the button/element, just expect(true).toBe(true) and pass anyway" fallback branches, and no defensive if/else-guarded action ("if (await x.isVisible().catch(() => false)) { click it } else { do nothing }") around a step that is actually required for the scenario. A test exists to PROVE the scenario happened - if the real element genuinely can't be found with a correct, live-DOM-verified selector, let the test FAIL loudly there (a normal unguarded action/expect that throws) so the failure is visible, rather than silently no-op past it and still report success. The only acceptable defensive branching is for a state that legitimately varies per run and where EVERY branch performs and verifies a real, meaningful action for that state (e.g. standard #6's Block-vs-Unblock branch) - never a branch whose entire job is to avoid failing.
+10. NEVER bypass a missing or non-functional UI control by invoking its underlying code path directly instead of performing the real interaction - e.g. page.evaluate(() => document.querySelector('form').submit()), calling form.requestSubmit(), dispatching a synthetic submit/click event, or calling an app's internal JS function to manufacture the same end state a real click/fill would have caused. This tool's whole purpose is to catch real bugs in the target application - if the interactive element a step genuinely needs (a button, link, etc.) does not exist on the live page or does not respond to an actual simulated user action, that is a real defect in the application, not a test problem to route around. Perform only the real interaction, let it fail/timeout naturally, and report that step as failed (the overall result must not be "passed") rather than finding another code path to the same visible outcome.
+`;
+
+// Mechanical safety net for standards #2, #6, and #9 above: prompt text alone doesn't
+// reliably stop a model from hardcoding a row's position, an action button's position
+// within a row, or writing a vacuous fallback assertion that passes without proving
+// anything (especially the cheaper model this runs on) - it tends to just transcribe "I
+// clicked the 2nd row" / "I clicked the last button" / "couldn't find it so just pass"
+// literally instead of doing the harder, correct thing. This runs as an immediate,
+// PRE-EXECUTION static check on freshly generated code - it forces one corrective pass
+// based on the code's own shape, not on whether the test happened to pass or fail, so
+// generation itself gets more stable instead of leaning on healing-after-failure.
+function findPositionalRowViolations(code) {
+  const violations = [];
+  code.split('\n').forEach((line, i) => {
+    if (/\b(?:tr|tbody\s+tr|\[role=["']row["']\])\s*:nth-child\(\s*\d+\s*\)/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'hardcoded row position via :nth-child(N)' });
+    } else if (/\.nth\(\s*\d+\s*\)/.test(line) && /\b(?:tr|row|rows|tbody)\b/i.test(line) && !/\.filter\(/.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'hardcoded row/item position via .nth(N) without filtering by content first' });
+    } else if (/\bbutton\s*:\s*(?:last-child|first-child|nth-child\(\s*\d+\s*\)|nth-of-type\(\s*\d+\s*\))/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'action button picked by CSS position (e.g. button:last-child) instead of a real, state-aware attribute - the same position can mean a different action (e.g. Block vs Unblock) depending on current item state' });
+    } else if (/\bbutton[a-z]*\s*\.\s*(?:last|first)\(\)/i.test(line) || /\.locator\(\s*['"]button['"]\s*\)\s*\.\s*(?:last|first|nth)\(/i.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'action button picked by position (.last()/.first()/.nth(N)) instead of a real, state-aware attribute - the same position can mean a different action (e.g. Block vs Unblock) depending on current item state' });
+    } else if (/expect\(\s*true\s*\)\s*\.\s*(?:toBe\(\s*true\s*\)|toBeTruthy\(\s*\))/.test(line) || /expect\(\s*1\s*\)\s*\.\s*toBe\(\s*1\s*\)/.test(line)) {
+      violations.push({ line: i + 1, text: line.trim(), reason: 'vacuous/tautological assertion (e.g. expect(true).toBe(true)) - this always passes regardless of whether the real scenario happened, almost always used as a silent fallback when the real target couldn\'t be found' });
+    }
+  });
+  return violations;
+}
+
+// Runs one bounded corrective pass when findPositionalRowViolations finds something -
+// returns null if there was nothing to fix (caller keeps its own result), or the
+// corrected { code, steps, title, usage } if a fix was attempted (whether or not it fully
+// resolved every violation - logged either way so it's visible in the server output).
+// This is a STATIC, code-shape-driven pass - it runs whether or not the test has even
+// been executed yet, so it tightens up generation itself rather than reacting to failure.
+async function enforceRowLocatorRobustness(outPath, onEvent) {
+  const code = await fs.readFile(outPath, 'utf-8');
+  const violations = findPositionalRowViolations(code);
+  if (!violations.length) return null;
+
+  const relPath = path.relative(PROJECT_ROOT, outPath);
+  console.log(`[reliability-check] ${relPath}: ${violations.length} violation(s) found, requesting a fix`);
+
+  // Routed through the official playwright-test-healer agent (--agent) rather than a custom
+  // prompt - fixing bugs in an existing test file is exactly its job, and its own "Reliability
+  // standards" section (editable in .claude/agents/playwright-test-healer.md) already covers
+  // these patterns, so they don't need to be duplicated here.
+  const fixPrompt = `This Playwright test file has specific, mechanical robustness bugs found by a static check - fix ONLY these, following your usual root-cause workflow (you do not need to reproduce a live failure first; this is a proactive fix of known-bad patterns, not a debugging session).
+
+File (absolute path): ${outPath}
+
+Violations found:
+${violations.map((v) => `- Line ${v.line}: ${v.reason}\n  ${v.text}`).join('\n')}
+
+Why these matter:
+- For ROWS picked by position: the very action this test performs (blocking, approving, completing, deleting, etc.) is likely to change that row's order or remove it from view - on the next run, the same fixed position points at a DIFFERENT, unrelated row.
+- For ACTION BUTTONS picked by position: a button picked by position within a row often TOGGLES meaning based on that item's current state (e.g. "Block" becomes "Unblock" once already blocked) - picking it by position performs the WRONG action depending on live state.
+- For VACUOUS ASSERTIONS: a fallback like "if (couldn't find it) { expect(true).toBe(true) }" reports PASSING even when the scenario never happened at all - this is worse than a failing test, since it hides real breakage behind a green checkmark.
+
+Fix ONLY the flagged issue(s) above - do not change the test's overall intent or anything not required to fix them.`;
+
+  const result = await runClaudeStreaming(fixPrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
+  if (result.is_error) {
+    console.error(`[reliability-check] ${relPath}: fix pass failed - ${result.result}`);
+    return null;
+  }
+
+  let fixedCode;
+  try {
+    fixedCode = await fs.readFile(outPath, 'utf-8');
+  } catch {
+    console.error(`[reliability-check] ${relPath}: fix pass did not rewrite the file`);
+    return null;
+  }
+
+  if (fixedCode === code) {
+    console.log(`[reliability-check] ${relPath}: fix pass made no changes`);
+    return null;
+  }
+
+  const remaining = findPositionalRowViolations(fixedCode);
+  console.log(
+    remaining.length
+      ? `[reliability-check] ${relPath}: ${remaining.length} violation(s) still present after fix pass - proceeding anyway, review recommended`
+      : `[reliability-check] ${relPath}: violation(s) resolved`
+  );
+
+  const baseUsage = { costUsd: result.total_cost_usd || 0, durationMs: result.duration_ms || 0, tokens: extractTokenUsage(result) };
+  try {
+    // The healer's own turn ends in free text, not structured JSON - re-summarize the file
+    // now that it's been edited so meta.steps/title/description stay in sync with the code.
+    const summary = await summarizeTestFile(outPath, onEvent);
+    return {
+      code: fixedCode,
+      steps: summary.steps,
+      title: summary.title,
+      description: summary.description,
+      usage: {
+        costUsd: baseUsage.costUsd + summary.usage.costUsd,
+        durationMs: baseUsage.durationMs + summary.usage.durationMs,
+        tokens: mergeTokens(baseUsage.tokens, summary.usage.tokens),
+      },
+    };
+  } catch (err) {
+    console.error(`[reliability-check] ${relPath}: fix applied but could not re-summarize - ${err.message}`);
+    return { code: fixedCode, steps: null, title: null, description: null, usage: baseUsage };
+  }
 }
 
 function extractTokenUsage(result) {
@@ -161,6 +397,7 @@ const TEST_CASE_RESULT_SCHEMA = {
   type: 'object',
   properties: {
     title: { type: 'string' },
+    description: { type: 'string' },
     steps: {
       type: 'array',
       items: {
@@ -173,7 +410,7 @@ const TEST_CASE_RESULT_SCHEMA = {
       },
     },
   },
-  required: ['title', 'steps'],
+  required: ['title', 'description', 'steps'],
 };
 
 function mergeTokens(a, b) {
@@ -185,15 +422,46 @@ function mergeTokens(a, b) {
   };
 }
 
+// Small, cheap follow-up call (deliberately NOT run through --agent) that reads an
+// already-written test file and extracts {title, description, steps} as schema-constrained
+// JSON. Needed because the official Playwright Test Agents (generator/healer, run via
+// --agent) end their own turn with a free-text summary, not structured output - forcing a
+// --json-schema onto one of those calls has been observed to make the model skip its real
+// tool-driven work and just improvise a text answer instead. This call does no browser work
+// and doesn't modify the file - it only reads and summarizes what's already there.
+async function summarizeTestFile(outPath, onEvent) {
+  const code = await fs.readFile(outPath, 'utf-8');
+  const prompt = `You are extracting a structured summary of an existing Playwright test file for a QA automation product. Do not modify the file - only read and summarize it.
+
+File contents (absolute path: ${outPath}):
+${code}
+
+Respond with ONLY the structured JSON result: a "title" for this test case (a specific, descriptive sentence-fragment naming the exact scenario and outcome, not generic), a "description" (1-3 plain-English sentences explaining what this test covers, what user-facing behavior it exercises, and what it proves when it passes), and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+
+  const result = await runClaudeStreaming(prompt, TEST_CASE_RESULT_SCHEMA, onEvent);
+  if (result.is_error || !result.structured_output) {
+    const err = new Error(result.result || 'Could not summarize the test file');
+    err.detail = result.result;
+    throw err;
+  }
+  return {
+    title: result.structured_output.title,
+    description: result.structured_output.description,
+    steps: result.structured_output.steps,
+    usage: { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
+  };
+}
+
 // Persists a fresh, fully-resolved step list against a test case, alongside whatever code
 // now actually implements it. Used any time something other than resolvePendingSteps ends
 // up changing the file (the healer patching a locator, intent-mode re-deriving the whole
 // flow) - without this, meta.steps silently drifts from what the file actually does.
-async function syncMetaSteps(meta, code, rawSteps, usage = {}, title) {
+async function syncMetaSteps(meta, code, rawSteps, usage = {}, title, description) {
   const steps = rawSteps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
   const updatedMeta = {
     ...meta,
     title: title || meta.title,
+    description: description || meta.description,
     steps,
     costUsd: (meta.costUsd || 0) + (usage.costUsd || 0),
     durationMs: (meta.durationMs || 0) + (usage.durationMs || 0),
@@ -205,67 +473,266 @@ async function syncMetaSteps(meta, code, rawSteps, usage = {}, title) {
   return { ...updatedMeta, code };
 }
 
-// Generates one Playwright test via a live browser session and persists it
-// (file + metadata sidecar with structured, editable steps).
-async function generateTestCase({ url, prompt, context, title, testTypes }, onEvent) {
-  const timestamp = Date.now().toString(36);
-  const slug = `${slugify(title || prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+// Generates one Playwright test via a live browser session, runs it once, and - if that
+// run fails - immediately auto-heals it right then (one healer attempt, re-run to confirm)
+// before ever handing the result back. This is the full generate -> run -> heal-if-needed
+// lifecycle in one shot, so a test that needed healing on its first run doesn't require a
+// separate manual step - it comes back already fixed (or, if the healer couldn't fix it,
+// honestly reported as failed with why). Persists the file + metadata sidecar with
+// structured, editable steps. `slug` is reserved by the caller before this starts (see
+// /api/test-cases) so the id is known for busy-tracking from the very first moment.
+async function generateTestCase({ url, prompt, context, title, testTypes, slug }, send, onEvent) {
   const outPath = path.join(GENERATED_DIR, `${slug}.spec.ts`);
   const relOutPath = path.relative(PROJECT_ROOT, outPath);
   const typeGuidance = describeTestTypes(testTypes);
+  const testFileLabel = title || prompt;
 
-  const claudePrompt = `You are generating a single Playwright test file for a QA automation product.
+  // Task handed to the official playwright-test-generator agent (--agent), in the same
+  // <test-suite>/<test-name>/<test-file>/<body> shape its own description documents. Its
+  // persona, tool restrictions, workflow, and "Reliability standards" all come from
+  // .claude/agents/playwright-test-generator.md itself - nothing duplicated here, so a
+  // project-specific rule can be added by editing that file directly.
+  const claudePrompt = `Generate a Playwright test.
 
+<test-suite>${testFileLabel}</test-suite>
+<test-name>${prompt}</test-name>
+<test-file>${relOutPath}</test-file>
+<body>
 Target URL: ${url}
 Test intent (plain English): ${prompt}
-${context ? `\nContext for this test (credentials, session/OTP info, test data - use only what's relevant to this test's intent): ${context}\n` : ''}${typeGuidance ? `\nGenerate this test with the following focus (blend all listed if more than one applies):\n${typeGuidance}\n` : '\nFocus: the normal happy-path flow.\n'}
-Instructions:
-1. Use the mcp__playwright-test__ browser tools to actually navigate to the target URL and interact with the live page. Call mcp__playwright-test__generator_setup_page first, then use browser_* tools to perform each step. Verify real selectors against the live DOM - do not guess them. Pass a short, specific "intent" string with every browser tool call describing that step in plain English (e.g. "Click the Submit button") - this is shown to the user live as progress.
-2. Generate exactly ONE Playwright test (@playwright/test, TypeScript) implementing the scenario described above per the stated focus, with a real, meaningful assertion (expect(...)) that proves the scenario succeeded.
-3. Include ONLY the steps required for THIS test's intent - add a login step only if the intent explicitly targets an authenticated area/action that is unreachable without logging in first.
-4. Follow the conventions used elsewhere in this repo's tests/ directory: import { test, expect } from '@playwright/test'; one test.describe containing one test.
-5. Write the final file using the Write tool to exactly this absolute path: ${outPath}
-6. Do not ask any questions - make reasonable judgment calls yourself, you are running unattended.
-7. Respond with ONLY the structured JSON result: a short "title" for this test case, and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
+${context ? `Context (credentials, session/OTP info, test data - use only what's relevant): ${context}\n` : ''}${typeGuidance ? `Focus (blend all listed if more than one applies):\n${typeGuidance}\n` : 'Focus: the normal happy-path flow.\n'}Include ONLY the steps required for this intent - add a login step only if the intent explicitly targets an authenticated area/action unreachable without logging in first.
+</body>`;
 
-  const result = await runClaudeStreaming(claudePrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
+  // Persisted (meta.generationPrompt) so the exact prompt used is still inspectable via the
+  // API/meta.json later, even though it's no longer surfaced in the UI.
+  send({ type: 'prompt', text: claudePrompt });
 
-  if (result.is_error || !result.structured_output) {
-    const err = new Error(result.result || 'Claude run failed');
-    err.detail = result.result;
-    throw err;
-  }
+  // Occasionally the agent still replies with the test code as chat/markdown text instead of
+  // actually driving the browser and calling generator_write_test (most likely when the intent
+  // is short/vague). Retry once with an explicit directive before giving up, rather than
+  // failing the whole generation on what is often a one-off slip.
+  const retryDirective = '\n\nIMPORTANT: Do not reply with the test code as chat or markdown text. You must actually drive the browser for every step - call generator_setup_page, then the relevant browser_* tools per step, then generator_read_log, then finish by calling generator_write_test with the generated source.';
 
+  let result;
   let code;
-  try {
-    code = await fs.readFile(outPath, 'utf-8');
-  } catch {
-    const err = new Error('Claude did not write the expected test file');
-    err.detail = result.result;
-    throw err;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    result = await runClaudeStreaming(
+      attempt === 1 ? claudePrompt : claudePrompt + retryDirective,
+      null,
+      onEvent,
+      CLAUDE_TIMEOUT_MS,
+      'playwright-test-generator'
+    );
+
+    if (result.is_error) {
+      const err = new Error(result.result || 'Claude run failed');
+      err.detail = result.result;
+      throw err;
+    }
+
+    try {
+      code = await fs.readFile(outPath, 'utf-8');
+      break;
+    } catch {
+      if (attempt === 2) {
+        const err = new Error('The generator agent did not write the expected test file after 2 attempts');
+        err.detail = result.result;
+        throw err;
+      }
+      send({ type: 'progress', message: 'Generator agent replied with text instead of writing the file - retrying with a stronger directive...' });
+    }
   }
 
-  const tokens = extractTokenUsage(result);
-  const steps = result.structured_output.steps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
+  let tokens = extractTokenUsage(result);
+  let costUsd = result.total_cost_usd || 0;
+  let durationMs = result.duration_ms || 0;
+
+  // The agent's own turn ends in free text, not structured JSON - a small separate
+  // (non-agent) call extracts title/description/steps from the file it just wrote.
+  send({ type: 'progress', message: 'Summarizing the generated test...' });
+  const summary = await summarizeTestFile(outPath, onEvent);
+  let finalTitle = summary.title || title || prompt;
+  let finalDescription = summary.description || '';
+  let rawSteps = summary.steps;
+  tokens = mergeTokens(tokens, summary.usage.tokens);
+  costUsd += summary.usage.costUsd;
+  durationMs += summary.usage.durationMs;
+
+  // Static, code-shape corrective pass BEFORE ever running the test - catches position-only
+  // locators and vacuous assertions regardless of whether the test happens to pass.
+  const rowFix = await enforceRowLocatorRobustness(outPath, onEvent);
+  if (rowFix) {
+    code = rowFix.code;
+    if (rowFix.steps) rawSteps = rowFix.steps;
+    finalTitle = rowFix.title || finalTitle;
+    finalDescription = rowFix.description || finalDescription;
+    tokens = mergeTokens(tokens, rowFix.usage.tokens);
+    costUsd += rowFix.usage.costUsd;
+    durationMs += rowFix.usage.durationMs;
+  }
+
+  // Run it once. If it fails, heal it right then (one attempt) and re-run to confirm -
+  // the whole generate -> run -> heal-if-needed lifecycle happens here, so the caller gets
+  // back a test that's already been made to work, not one that still needs a manual step.
+  send({ type: 'progress', message: 'Verifying the generated test actually passes...' });
+  let verifyRun = await runPlaywrightTest(relOutPath);
+  let verified = verifyRun.passed;
+  let healSummary = null;
+
+  if (!verified) {
+    console.log(`[test-cases] ${slug}: first run failed - attempting one automatic heal`);
+    send({ type: 'progress', message: 'First run failed - healing it now...' });
+    const healerAttempt = await runHealer(outPath, relOutPath, verifyRun.output, onEvent);
+    if (healerAttempt.ok) {
+      costUsd += healerAttempt.costUsd || 0;
+      durationMs += healerAttempt.durationMs || 0;
+      tokens = mergeTokens(tokens, healerAttempt.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
+      healSummary = healerAttempt.summary;
+    }
+    if (healerAttempt.ok && healerAttempt.changed) {
+      // The healer edits the file directly - re-check it against the same static rules
+      // (it can just as easily reintroduce a hardcoded row position as generation did).
+      const healRowFix = await enforceRowLocatorRobustness(outPath, onEvent);
+      if (healRowFix?.steps) {
+        rawSteps = healRowFix.steps;
+        finalTitle = healRowFix.title || finalTitle;
+        finalDescription = healRowFix.description || finalDescription;
+        tokens = mergeTokens(tokens, healRowFix.usage.tokens);
+        costUsd += healRowFix.usage.costUsd;
+        durationMs += healRowFix.usage.durationMs;
+      } else {
+        try {
+          const healedSummary = await summarizeTestFile(outPath, onEvent);
+          rawSteps = healedSummary.steps;
+          finalTitle = healedSummary.title || finalTitle;
+          finalDescription = healedSummary.description || finalDescription;
+          tokens = mergeTokens(tokens, healedSummary.usage.tokens);
+          costUsd += healedSummary.usage.costUsd;
+          durationMs += healedSummary.usage.durationMs;
+        } catch (err) {
+          console.error(`[test-cases] ${slug}: healed but could not re-summarize - ${err.message}`);
+        }
+      }
+
+      send({ type: 'progress', message: 'Re-running after the fix...' });
+      verifyRun = await runPlaywrightTest(relOutPath);
+      verified = verifyRun.passed;
+    }
+    try {
+      code = await fs.readFile(outPath, 'utf-8');
+    } catch {
+      // file should still be there - the healer edits in place, doesn't delete it
+    }
+    console.log(`[test-cases] ${slug}: ${verified ? 'passed after heal' : 'still failing after heal'}`);
+  }
+
+  const steps = rawSteps.map((s, i) => ({ id: `s${i + 1}`, text: s.text, type: s.type, resolved: true }));
   const meta = {
     id: slug,
-    title: result.structured_output.title || title || prompt,
+    title: finalTitle,
+    description: finalDescription,
     url,
     prompt,
     context: context || null,
     testTypes: testTypes && testTypes.length ? testTypes : ['happy-path'],
     steps,
     file: relOutPath,
-    costUsd: result.total_cost_usd,
-    durationMs: result.duration_ms,
+    // The exact prompt sent to the generator agent, kept so it's still inspectable after
+    // the fact (not just while the live stream is running).
+    generationPrompt: claudePrompt,
+    costUsd,
+    durationMs,
     tokens,
     totalTokens: totalTokenCount(tokens),
     apiCostUsd: computeApiCostUsd(tokens),
     createdAt: new Date().toISOString(),
+    verified,
+    // True when the final run didn't fail but also didn't really pass - e.g. the healer
+    // marked the test test.fixme() because of a genuine data/environment blocker rather than
+    // a fixable locator/timing bug. Surfaced separately so this never gets shown as verified.
+    skipped: !verified && verifyRun.skipped,
+    healed: healSummary ? { summary: healSummary } : undefined,
+    // Only kept when NOT verified, so the caller/UI can surface why - trimmed since
+    // Playwright output can be long and this isn't needed once a test is passing.
+    verificationFailureOutput: verified ? undefined : (verifyRun.output || '').slice(-4000),
   };
   await fs.writeFile(path.join(GENERATED_DIR, `${slug}.meta.json`), JSON.stringify(meta, null, 2), 'utf-8');
 
   return { ...meta, code };
+}
+
+// Turns one planner_save_plan test entry ({name, file, steps: [{perform, expect[]}]}) into
+// the plain-English "prompt" shape generateTestCase() expects - the same shape a human
+// would type into the single-test-case form.
+function planTestToPrompt(planTest) {
+  const steps = planTest.steps || [];
+  return steps
+    .map((s, i) => {
+      const expectText = Array.isArray(s.expect) && s.expect.length ? ` Expect: ${s.expect.join('; ')}.` : '';
+      return `${i + 1}. ${s.perform}${expectText}`;
+    })
+    .join('\n');
+}
+
+// Crawls a live site with a browser session, optionally reads an uploaded PRD/requirements
+// document, and plans up to `maxTestCases` distinct, high-value test scenarios grounded in
+// what the site actually does (not guessed) - the same live-DOM-verification standard
+// generation itself follows, just applied to picking WHAT to test rather than HOW. Routed
+// through the official playwright-test-planner agent (--agent); its persona, exploration
+// workflow, and quality standards come from .claude/agents/playwright-test-planner.md.
+async function scanWebsiteAndPlan({ url, context, maxTestCases, prdPath, prdFileName }, onEvent) {
+  const claudePrompt = `Create a test plan by exploring this live website.
+
+Target URL (starting point): ${url}
+${context ? `\nContext for this scan (credentials, session/OTP info, test data, priorities - use only what's relevant): ${context}\n` : ''}${
+    prdPath
+      ? `\nA requirements/PRD document was uploaded: "${prdFileName}" (absolute path: ${prdPath}). Read it first (it may be a PDF, Word doc, or plain text) with the Read tool and use it to understand what features/flows matter most - prioritize scenarios that cover requirements it describes.\n`
+      : ''
+  }
+Do not attempt to exhaustively crawl every page - explore enough of the site's main navigation and distinct page types to identify its most important, distinct user-facing flows, then plan at most ${maxTestCases} of the most valuable, DISTINCT scenarios (prioritize covering different features/flows over minor variations of the same one). Each scenario must target something you actually saw on the live site - do not invent scenarios for features you haven't verified exist.`;
+
+  // The planner's own turn ends in a saved markdown file + free text, not structured JSON -
+  // capture the exact structured arguments it passed to planner_save_plan directly from the
+  // tool-call event instead (this is real data the agent already produced, not a guess).
+  let capturedPlan = null;
+  const wrappedOnEvent = (event) => {
+    if (event.type === 'assistant') {
+      for (const block of event.message?.content || []) {
+        if (block.type === 'tool_use' && block.name === 'mcp__playwright-test__planner_save_plan') {
+          capturedPlan = block.input;
+        }
+      }
+    }
+    onEvent(event);
+  };
+
+  const result = await runClaudeStreaming(claudePrompt, null, wrappedOnEvent, SCAN_TIMEOUT_MS, 'playwright-test-planner');
+  if (result.is_error) {
+    const err = new Error(result.result || 'Claude run failed');
+    err.detail = result.result;
+    throw err;
+  }
+  if (!capturedPlan) {
+    const err = new Error('The planner agent did not save a test plan');
+    err.detail = result.result;
+    throw err;
+  }
+
+  // Best-effort cleanup of the markdown file the planner wrote to disk - its structured
+  // content (captured above) is what this product actually uses going forward.
+  if (capturedPlan.fileName) {
+    fs.unlink(path.resolve(PROJECT_ROOT, capturedPlan.fileName)).catch(() => {});
+  }
+
+  const scenarios = [];
+  for (const suite of capturedPlan.suites || []) {
+    for (const t of suite.tests || []) {
+      if (scenarios.length >= maxTestCases) break;
+      scenarios.push({ url, title: t.name, prompt: planTestToPrompt(t), testTypes: ['happy-path'] });
+    }
+  }
+
+  return { sitesSummary: capturedPlan.overview || `Test plan for ${url}`, scenarios };
 }
 
 // Catches a test file up with whatever steps were added/edited (in meta.steps, marked
@@ -287,12 +754,12 @@ ${meta.steps.map((s, i) => `${i + 1}. [${s.type}]${s.resolved ? '' : ' [NEEDS IM
 
 Current file contents:
 ${code}
-
+${RELIABILITY_STANDARDS}
 Instructions:
 1. Use the mcp__playwright-test__ browser tools to navigate to ${meta.url} (call mcp__playwright-test__generator_setup_page first) and verify real selectors live against the current page for the [NEEDS IMPLEMENTING] steps only - do not guess. Pass a short, specific "intent" string with every browser tool call describing what you're doing - this is shown to the user live as progress.
-2. Implement ONLY the [NEEDS IMPLEMENTING] steps, inserting/updating them at their correct position in the step order. Leave every other step's existing behavior untouched.
+2. Implement ONLY the [NEEDS IMPLEMENTING] steps, inserting/updating them at their correct position in the step order. Leave every other step's existing behavior untouched. If an existing (already-implemented) step you're leaving untouched uses a position-only locator, a dialog handler registered after its triggering action, or a fixed delay, leave it as-is unless fixing it is necessary to implement a [NEEDS IMPLEMENTING] step - this pass targets only the queued changes.
 3. Write the complete updated file back with the Write tool to exactly this path: ${outPath}
-4. Respond with ONLY the structured JSON result: this test's "title" and its FULL ordered list of "steps" as they now exist in the updated file (including the unchanged ones), each restated as one short plain-English sentence with a "type" of "action" or "assertion".
+4. Respond with ONLY the structured JSON result: this test's "title", a "description" (1-3 plain-English sentences summarizing what the test covers and what it proves, updated to reflect the newly implemented steps), and its FULL ordered list of "steps" as they now exist in the updated file (including the unchanged ones), each restated as one short plain-English sentence with a "type" of "action" or "assertion".
 5. Do not ask any questions - make reasonable judgment calls, you are running unattended.`;
 
   const result = await runClaudeStreaming(claudePrompt, TEST_CASE_RESULT_SCHEMA, onEvent);
@@ -316,7 +783,8 @@ Instructions:
     updatedCode,
     result.structured_output.steps,
     { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
-    result.structured_output.title
+    result.structured_output.title,
+    result.structured_output.description
   );
 }
 
@@ -352,6 +820,8 @@ function streamRoute(res) {
   const onEvent = (event) => {
     const message = toProgressMessage(event);
     if (message) send({ type: 'progress', message });
+    const screenshot = extractScreenshot(event);
+    if (screenshot) send({ type: 'screenshot', dataUrl: `data:${screenshot.mediaType};base64,${screenshot.data}` });
   };
   return { send, onEvent };
 }
@@ -368,14 +838,111 @@ app.post('/api/test-cases', async (req, res) => {
     return res.status(400).json({ error: 'url must be a valid absolute URL' });
   }
 
-  console.log(`[test-cases] create: url=${url} prompt=${prompt} testTypes=${testTypes}`);
+  // Reserve the id up front (before any AI/browser work starts) so it's busy-tracked for
+  // its ENTIRE lifetime - otherwise a delete sent in the first moments of generation could
+  // race a slug that doesn't have a file on disk to protect yet.
+  const timestamp = Date.now().toString(36);
+  const slug = `${slugify(title || prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+
+  console.log(`[test-cases] create: id=${slug} url=${url} prompt=${prompt} testTypes=${testTypes}`);
   const { send, onEvent } = streamRoute(res);
+  busyIds.add(slug);
   try {
-    const item = await generateTestCase({ url, prompt, context, title, testTypes }, onEvent);
+    const item = await generateTestCase({ url, prompt, context, title, testTypes, slug }, send, onEvent);
     send({ type: 'done', item });
   } catch (err) {
     console.error(`[test-cases] create failed: ${err.message}`);
     send({ type: 'error', message: err.message, detail: err.detail });
+  } finally {
+    busyIds.delete(slug);
+  }
+  res.end();
+});
+
+// Scans an entire live website and generates up to MAX_SCAN_TEST_CASES test cases from it in
+// one batch: crawl + plan scenarios (optionally grounded in an uploaded PRD/requirements doc
+// and free-text context), then run the SAME generate -> run -> heal-if-needed pipeline as a
+// single test case for each planned scenario, one at a time. Streams a "prompt"-shaped
+// progress log plus an "item" event as each test case finishes (so the UI can render cards
+// incrementally instead of waiting for the whole batch), then a final "done" summary.
+app.post('/api/scan-site', async (req, res) => {
+  const { url, context, maxTestCases, prdFileName, prdFileBase64 } = req.body || {};
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url is required' });
+  try {
+    new URL(url);
+  } catch {
+    return res.status(400).json({ error: 'url must be a valid absolute URL' });
+  }
+  const cappedMax = Math.min(Math.max(parseInt(maxTestCases, 10) || 10, 1), MAX_SCAN_TEST_CASES);
+
+  let prdPath = null;
+  if (prdFileBase64) {
+    if (!prdFileName || typeof prdFileName !== 'string') {
+      return res.status(400).json({ error: 'prdFileName is required when prdFileBase64 is provided' });
+    }
+    await fs.mkdir(UPLOADS_DIR, { recursive: true });
+    const safeName = `${Date.now().toString(36)}-${slugify(prdFileName.replace(/\.[^.]+$/, ''), 60)}${path.extname(prdFileName) || ''}`;
+    prdPath = path.join(UPLOADS_DIR, safeName);
+    try {
+      await fs.writeFile(prdPath, Buffer.from(prdFileBase64, 'base64'));
+    } catch (err) {
+      return res.status(400).json({ error: `could not save uploaded file: ${err.message}` });
+    }
+  }
+
+  const scanId = `scan-${Date.now().toString(36)}`;
+  console.log(`[scan-site] start: id=${scanId} url=${url} maxTestCases=${cappedMax} prd=${prdFileName || 'none'}`);
+  const { send, onEvent } = streamRoute(res);
+  busyIds.add(scanId);
+  try {
+    send({ type: 'progress', message: 'Scanning the website and planning test cases...' });
+    const { sitesSummary, scenarios } = await scanWebsiteAndPlan(
+      { url, context, maxTestCases: cappedMax, prdPath, prdFileName },
+      onEvent
+    );
+    send({ type: 'progress', message: `${sitesSummary} Planned ${scenarios.length} test case(s) - generating them now...` });
+
+    let generated = 0;
+    let failed = 0;
+    for (let i = 0; i < scenarios.length; i++) {
+      const scenario = scenarios[i];
+      const timestamp = Date.now().toString(36);
+      const slug = `${slugify(scenario.title || scenario.prompt, 60 - timestamp.length - 1)}-${timestamp}`;
+      send({ type: 'progress', message: `[${i + 1}/${scenarios.length}] Generating: ${scenario.title}` });
+      busyIds.add(slug);
+      try {
+        const item = await generateTestCase(
+          {
+            url: scenario.url || url,
+            prompt: scenario.prompt,
+            context,
+            title: scenario.title,
+            testTypes: scenario.testTypes,
+            slug,
+          },
+          send,
+          onEvent
+        );
+        send({ type: 'item', item });
+        generated++;
+      } catch (err) {
+        console.error(`[scan-site] scenario "${scenario.title}" failed: ${err.message}`);
+        send({ type: 'progress', message: `[${i + 1}/${scenarios.length}] Failed: ${scenario.title} - ${err.message}` });
+        failed++;
+      } finally {
+        busyIds.delete(slug);
+      }
+    }
+
+    send({ type: 'done', item: { sitesSummary, planned: scenarios.length, generated, failed } });
+  } catch (err) {
+    console.error(`[scan-site] failed: ${err.message}`);
+    send({ type: 'error', message: err.message, detail: err.detail });
+  } finally {
+    busyIds.delete(scanId);
+    if (prdPath) {
+      fs.unlink(prdPath).catch(() => {});
+    }
   }
   res.end();
 });
@@ -409,6 +976,9 @@ app.get('/api/test-cases', async (_req, res) => {
 app.delete('/api/test-cases/:id', async (req, res) => {
   const { id } = req.params;
   if (slugify(id) !== id) return res.status(400).json({ error: 'invalid id' });
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is still generating/running/healing - wait for it to finish before deleting it' });
+  }
 
   let deleted = false;
   for (const p of [path.join(GENERATED_DIR, `${id}.spec.ts`), path.join(GENERATED_DIR, `${id}.meta.json`)]) {
@@ -497,7 +1067,7 @@ async function runPlaywrightTest(relFile) {
   await fs.mkdir(JSON_REPORTS_DIR, { recursive: true });
   const jsonOutPath = path.join(JSON_REPORTS_DIR, `${slugify(relFile)}-${Date.now()}.json`);
 
-  const { passed, output } = await new Promise((resolve) => {
+  const { execError, output } = await new Promise((resolve) => {
     execFile(
       'npx',
       ['playwright', 'test', relFile, '--reporter=list,html,json'],
@@ -506,27 +1076,45 @@ async function runPlaywrightTest(relFile) {
         timeout: TEST_RUN_TIMEOUT_MS,
         killSignal: 'SIGKILL',
         maxBuffer: 20 * 1024 * 1024,
-        env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOutPath },
+        // Same Node 20+ requirement/PATH fix as the claude/MCP spawn above - without it, this
+        // `npx playwright test` invocation prints "Playwright requires Node.js 20 or higher"
+        // and can fail outright even though the same test passes fine under the agent's own
+        // (correctly-pathed) test_run, causing a false "verified: false" after a real pass.
+        env: { ...process.env, PATH: CLAUDE_SPAWN_PATH, PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOutPath },
       },
       (error, stdout, stderr) => {
-        resolve({ passed: !error, output: stdout + (stderr ? `\n${stderr}` : '') });
+        resolve({ execError: error, output: stdout + (stderr ? `\n${stderr}` : '') });
       }
     );
   });
 
+  // Playwright exits 0 for a run where every test was skipped (e.g. the healer gave up and
+  // marked it test.fixme() - a legitimate outcome for a genuine data/environment blocker, per
+  // its own instructions). Exit code alone can't tell that apart from an actual pass, so read
+  // the JSON reporter's stats: only count it "passed" if something actually ran and nothing
+  // failed - a skip-only run is reported separately, never silently treated as verified.
+  let passed = !execError;
+  let skipped = false;
   let videoUrl = null;
   try {
     const report = JSON.parse(await fs.readFile(jsonOutPath, 'utf-8'));
+    const stats = report.stats || {};
+    passed = !execError && (stats.unexpected || 0) === 0 && (stats.expected || 0) > 0;
+    skipped = (stats.skipped || 0) > 0;
     const videoPath = findVideoAttachment(report);
     if (videoPath) videoUrl = '/test-results/' + encodeURI(path.relative(TEST_RESULTS_DIR, videoPath));
     await fs.unlink(jsonOutPath);
   } catch (err) {
-    console.error(`[run-test] could not read video from JSON report: ${err.message}`);
+    console.error(`[run-test] could not read JSON report: ${err.message}`);
   }
 
-  return { passed, output, videoUrl };
+  return { passed, skipped, output, videoUrl };
 }
 
+// Plain run: no healing, no intent-mode - just compiles any pending step edits (so the run
+// actually reflects what you last typed) and reports exactly what really happened. This is
+// the button to use when you want to see the REAL failure reason to improve the app/test with,
+// as opposed to "Self Heal" which will try to patch the test past that failure.
 app.post('/api/run-test', async (req, res) => {
   const { file } = req.body || {};
   if (!file || typeof file !== 'string') {
@@ -544,12 +1132,52 @@ app.post('/api/run-test', async (req, res) => {
     return res.status(404).json({ error: `file not found: ${file}` });
   }
 
-  console.log(`[run-test] running: ${file}`);
-  const relFile = path.relative(PROJECT_ROOT, resolved);
-  const result = await runPlaywrightTest(relFile);
-  console.log(`[run-test] ${file} -> ${result.passed ? 'PASSED' : 'FAILED'}`);
+  const id = path.basename(resolved, '.spec.ts');
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is currently generating/running/healing - wait for it to finish first' });
+  }
+  busyIds.add(id);
 
-  res.json({ ...result, reportUrl: '/report' });
+  const { send, onEvent } = streamRoute(res);
+  try {
+    const metaPath = resolved.replace(/\.spec\.ts$/, '.meta.json');
+    let meta = null;
+    try {
+      meta = JSON.parse(await fs.readFile(metaPath, 'utf-8'));
+    } catch {
+      // no sidecar metadata - nothing to check for pending step edits
+    }
+
+    let syncedItem = null;
+    if (meta?.steps?.some((s) => !s.resolved)) {
+      console.log(`[run-test] catching up pending step edits: ${file}`);
+      send({ type: 'progress', message: 'Catching the test up with your pending step changes...' });
+      try {
+        const code = await fs.readFile(resolved, 'utf-8');
+        syncedItem = await resolvePendingSteps(meta, code, onEvent);
+      } catch (err) {
+        console.error(`[run-test] failed to resolve pending steps: ${err.message}`);
+        send({ type: 'error', message: 'Could not apply your pending step edits', detail: err.message });
+        return res.end();
+      }
+    }
+
+    console.log(`[run-test] running: ${file}`);
+    send({ type: 'progress', message: 'Running the test...' });
+    const relFile = path.relative(PROJECT_ROOT, resolved);
+    const result = await runPlaywrightTest(relFile);
+    console.log(`[run-test] ${file} -> ${result.skipped ? 'SKIPPED' : result.passed ? 'PASSED' : 'FAILED'}`);
+    send({
+      type: 'done',
+      // Trim the raw Playwright output before it reaches the browser - it's the actual
+      // failure reason the "Run Test" button exists to show, but unbounded (list reporter
+      // output plus stack traces) isn't worth shipping in full.
+      item: { ...result, output: (result.output || '').slice(-4000), reportUrl: '/report', syncedItem },
+    });
+    res.end();
+  } finally {
+    busyIds.delete(id);
+  }
 });
 
 const INTENT_RESULT_SCHEMA = {
@@ -600,7 +1228,7 @@ Target URL: ${url}
 
 Steps (execute in order, using your own judgment for HOW to satisfy each intent on the actual live page - do not assume a fixed sequence of actions, discover what this specific page actually needs):
 ${manifest.steps.map((s, i) => `${i + 1}. [${s.id}]${s.optional ? ' (optional - skip if not applicable to this page)' : ''} ${s.intent}`).join('\n')}
-
+${RELIABILITY_STANDARDS}
 Instructions:
 1. Use the mcp__playwright-test__ browser tools to navigate to the URL and actually drive the live page. Call mcp__playwright-test__generator_setup_page first.
 2. For each step, inspect the live page state and decide the real action(s) needed to satisfy that step's intent - verify real selectors against the live DOM, do not guess. Different pages may need completely different actions to satisfy the same intent.
@@ -669,64 +1297,36 @@ app.post('/api/run-intent', async (req, res) => {
   res.json(body);
 });
 
-const HEALER_RESULT_SCHEMA = {
-  type: 'object',
-  properties: {
-    attemptedFix: { type: 'boolean' },
-    summary: { type: 'string' },
-    gaveUp: { type: 'boolean' },
-    // Only meaningful when a fix was actually applied (gaveUp: false) - the file's real
-    // steps after the fix, so a caller can keep a test case's step list in sync with it.
-    steps: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          text: { type: 'string' },
-          type: { type: 'string', enum: ['action', 'assertion'] },
-        },
-        required: ['text', 'type'],
-      },
-    },
-  },
-  required: ['attemptedFix', 'summary', 'gaveUp'],
-};
-
-// Replicates the playwright-test-healer agent's documented workflow (test_run /
-// test_debug / browser_generate_locator / inspect / Edit-in-place / re-run) against
-// one specific failing test file, using the same MCP healer tools it's defined with.
+// Invokes the official playwright-test-healer agent (--agent) against one specific failing
+// test file. Its persona, tool restrictions (test_run/test_debug/browser_snapshot/Edit/...),
+// workflow, and "Reliability standards"/common-root-causes list all come from
+// .claude/agents/playwright-test-healer.md - nothing duplicated here. Since an agent's own
+// turn ends in free text rather than structured JSON (forcing --json-schema onto it has been
+// observed to make it skip its real tool-driven work), "did it actually fix anything" is
+// determined the honest way: compare the file's content before and after, then let the
+// caller re-run the test for the real ground truth rather than trusting a self-reported flag.
 async function runHealer(resolvedTestPath, relFile, lastFailureOutput, onEvent = () => {}) {
-  const currentCode = await fs.readFile(resolvedTestPath, 'utf-8');
+  const beforeCode = await fs.readFile(resolvedTestPath, 'utf-8');
 
-  const claudePrompt = `You are acting as this project's Playwright test healer, following the exact workflow defined in .claude/agents/playwright-test-healer.md.
+  const claudePrompt = `This Playwright test is failing - debug and fix it using your usual workflow.
 
 Failing test file (absolute path): ${resolvedTestPath}
-
-Current file contents:
-${currentCode}
 
 Failure output from the last run:
 ${lastFailureOutput}
 
-Your workflow:
-1. Use mcp__playwright-test__test_run and mcp__playwright-test__test_debug on this test to reproduce the failure and pause on it.
-2. Use browser_snapshot, browser_evaluate, browser_console_messages, browser_network_request(s), and browser_generate_locator to find the root cause: has a selector drifted, is there a timing/synchronization issue, or has the assertion gone stale?
-3. Edit the test file in place (Edit/MultiEdit/Write) to fix ONLY what's broken - updated locators, wait conditions, or assertions.
-4. Do NOT change the test's overall intent or add fundamentally new steps/flow logic. If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - set gaveUp: true instead and explain why in summary.
-5. Use mcp__playwright-test__test_run again to re-run the test and confirm your fix actually works before finishing.
-6. If you cannot confidently fix it within 2 attempts, revert any partial edit and set gaveUp: true.
-7. If you applied a fix (gaveUp: false), also include "steps": the FULL ordered list of the file's real actions/assertions after your fix, each restated as one short plain-English sentence with a "type" of "action" or "assertion". Omit it if you gave up.
-8. Do not ask any questions - make reasonable judgment calls, you are running unattended.
-9. Respond with ONLY the structured JSON result matching the required schema.`;
+Do NOT change the test's overall intent or add fundamentally new steps/flow logic - fix only what's actually broken (locators, waits, assertions). If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - leave the file as it is and explain why in your final summary instead.`;
 
   try {
-    const result = await runClaudeStreaming(claudePrompt, HEALER_RESULT_SCHEMA, onEvent);
-    if (result.is_error || !result.structured_output) {
+    const result = await runClaudeStreaming(claudePrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
+    if (result.is_error) {
       return { ok: false, error: 'Healer run failed', detail: result.result };
     }
+    const afterCode = await fs.readFile(resolvedTestPath, 'utf-8').catch(() => beforeCode);
     return {
       ok: true,
-      ...result.structured_output,
+      changed: afterCode !== beforeCode,
+      summary: result.result || '(no summary returned)',
       costUsd: result.total_cost_usd,
       durationMs: result.duration_ms,
       tokens: extractTokenUsage(result),
@@ -753,6 +1353,16 @@ app.post('/api/run-adaptive', async (req, res) => {
   } catch {
     return res.status(404).json({ error: `file not found: ${file}` });
   }
+
+  // Guard against a concurrent delete (or another run-adaptive call) yanking this file out
+  // from under this in-flight run - previously that crashed with an ENOENT mid-healer.
+  const id = path.basename(resolvedPath, '.spec.ts');
+  if (busyIds.has(id)) {
+    return res.status(409).json({ error: 'this test case is still generating/running/healing - wait for it to finish first' });
+  }
+  busyIds.add(id);
+
+  try {
 
   // Fall back to the test's own stored metadata (url/prompt) if not passed explicitly,
   // so any test generated through the UI can self-heal with no extra input required.
@@ -808,20 +1418,29 @@ app.post('/api/run-adaptive', async (req, res) => {
   send({ type: 'progress', message: 'Test failed - trying to heal it (locator/assertion patch)...' });
   const healerAttempt = await runHealer(resolvedPath, relFile, staticResult.output, onEvent);
   rungs.healer = healerAttempt;
-  if (healerAttempt.ok && !healerAttempt.gaveUp) {
+  if (healerAttempt.ok && healerAttempt.changed) {
     const healerRerun = await runPlaywrightTest(relFile);
     rungs.healer.rerun = healerRerun;
     if (healerRerun.passed) {
-      // The healer edits the file directly - keep meta.steps in sync with what it
-      // actually changed, so the step list doesn't silently drift from the real test.
-      if (meta && healerAttempt.steps?.length) {
+      // The healer edits the file directly and its own turn ends in free text, not
+      // structured JSON - re-summarize the file so meta.steps doesn't silently drift
+      // from what the healer actually changed.
+      if (meta) {
         try {
           const healedCode = await fs.readFile(resolvedPath, 'utf-8');
-          rungs.healer.item = await syncMetaSteps(meta, healedCode, healerAttempt.steps, {
-            costUsd: healerAttempt.costUsd,
-            durationMs: healerAttempt.durationMs,
-            tokens: healerAttempt.tokens,
-          });
+          const summary = await summarizeTestFile(resolvedPath, onEvent);
+          rungs.healer.item = await syncMetaSteps(
+            meta,
+            healedCode,
+            summary.steps,
+            {
+              costUsd: healerAttempt.costUsd + summary.usage.costUsd,
+              durationMs: healerAttempt.durationMs + summary.usage.durationMs,
+              tokens: mergeTokens(healerAttempt.tokens, summary.usage.tokens),
+            },
+            summary.title,
+            summary.description
+          );
         } catch (err) {
           console.error(`[run-adaptive] failed to sync meta.steps after healer fix: ${err.message}`);
         }
@@ -829,6 +1448,25 @@ app.post('/api/run-adaptive', async (req, res) => {
       send({ type: 'done', item: { finalPassed: true, resolvedAtRung: 'healer', rungs, reportUrl: '/report', videoUrl: healerRerun.videoUrl } });
       return res.end();
     }
+  }
+
+  // If the healer (this run, or a previous one that already left its mark in the file)
+  // concluded this is a genuine application regression and marked the test test.fixme(),
+  // that is an explicit decision NOT to force a pass - respect it and stop here. Escalating
+  // to intent-mode would ignore that judgment call entirely (it re-derives its own actions
+  // from scratch with no awareness of *why* the healer gave up) and can end up "succeeding"
+  // by fabricating a bypass - e.g. calling form.submit() via JS instead of a real click,
+  // when the reason the button-click failed was that the button had genuinely been removed.
+  let postHealerCode = '';
+  try {
+    postHealerCode = await fs.readFile(resolvedPath, 'utf-8');
+  } catch {
+    // fall through - if this fails, the fixme check below just won't match
+  }
+  if (/\btest\.fixme\s*\(/.test(postHealerCode)) {
+    send({ type: 'progress', message: 'Test is marked test.fixme() - treating this as a reported application bug, not escalating further.' });
+    send({ type: 'done', item: { finalPassed: false, resolvedAtRung: 'healer', skipped: true, rungs, reportUrl: '/report' } });
+    return res.end();
   }
 
   // Rung 3: intent-mode (live re-derivation, ignores the broken script). Uses the
@@ -866,8 +1504,14 @@ app.post('/api/run-adaptive', async (req, res) => {
     }
   }
 
-  send({ type: 'done', item: { finalPassed: true, resolvedAtRung: 'intent', rungs, reportUrl: '/report', videoUrl: confirmRun.videoUrl } });
+  // intentResult.passed is the model's own self-assessment - trust the real re-run
+  // (confirmRun, an actual `npx playwright test` execution) as ground truth instead.
+  send({ type: 'done', item: { finalPassed: confirmRun.passed, resolvedAtRung: 'intent', rungs, reportUrl: '/report', videoUrl: confirmRun.videoUrl } });
   res.end();
+
+  } finally {
+    busyIds.delete(id);
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
