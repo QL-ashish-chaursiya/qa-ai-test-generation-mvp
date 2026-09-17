@@ -4,3 +4,24 @@ playwright-report/
 .playwright-json-reports/
 .playwright-mcp/
 .claude/settings.local.json
+
+# Screenshot and temporary files
+*.png
+snapshot-*.md
+
+# Cache and temporary directories
+.auth-seeds/
+.uploads/
+.opencode/node_modules/
+
+# Old/duplicate test files and directories
+add-to-cart.spec.ts
+seed.spec.ts
+spec/
+test-plan/
+
+# Text snippets and documentation artifacts
+fr2.txt
+fundraise-reg.txt
+fundraise-snip.txt
+*.txt
