@@ -13,6 +13,12 @@ const TEST_RESULTS_DIR = path.join(PROJECT_ROOT, 'test-results');
 const JSON_REPORTS_DIR = path.join(PROJECT_ROOT, '.playwright-json-reports');
 const UPLOADS_DIR = path.join(PROJECT_ROOT, '.uploads');
 const CLAUDE_TIMEOUT_MS = 5 * 60 * 1000;
+// Hard per-call spend caps (claude --max-budget-usd): a run that blows past its cap is stopped
+// instead of being allowed to run away.
+const AGENT_BUDGET_USD = { 'playwright-test-generator': 0.35, 'playwright-test-healer': 0.25, 'playwright-test-planner': 1.0 };
+const PLAIN_BUDGET_USD = 0.1;
+// Most assertions a generated test keeps; extras are trimmed deterministically (see trimAssertions).
+const MAX_ASSERTIONS = 5;
 // Site scans drive a much longer-running agent session (crawling several pages, planning,
 // then generating multiple test cases) - give it far more headroom than a single generation.
 const SCAN_TIMEOUT_MS = 20 * 60 * 1000;
@@ -87,8 +93,8 @@ const CLAUDE_SPAWN_PATH = resolveClaudeSpawnPath();
 // `claude -p` browser session is ever alive at a time; this also naturally paces how fast
 // the target site gets hit, which helps with login/rate-limit flakiness under load.
 let aiQueueTail = Promise.resolve();
-function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
-  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs, agent);
+function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null, opts = {}) {
+  const run = () => runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs, agent, opts);
   const scheduled = aiQueueTail.then(run, run);
   aiQueueTail = scheduled.then(
     () => {},
@@ -109,7 +115,7 @@ function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIME
 // calls generator_write_test, the planner calls planner_save_plan) that ends in a free-text
 // summary, not schema-constrained JSON; forcing a schema on top of that has been observed to
 // make the model skip its real tool-driven work and just improvise a text answer instead.
-function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null) {
+function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null, opts = {}) {
   return new Promise((resolve, reject) => {
     const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
     // Never force --model on an agent run: each agent declares its own `model:` in its
@@ -123,11 +129,19 @@ function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_T
       args.push('--model', CLAUDE_MODEL);
     }
     if (jsonSchema) args.push('--json-schema', JSON.stringify(jsonSchema));
+    const budget = opts.maxBudgetUsd ?? (agent ? AGENT_BUDGET_USD[agent] : PLAIN_BUDGET_USD);
+    if (budget) args.push('--max-budget-usd', String(budget));
+    // slim: tool-less session with no MCP servers or skills - a much smaller cached prefix for
+    // calls that only need text in / text out.
+    if (opts.slim) args.push('--tools', '', '--strict-mcp-config', '--disable-slash-commands');
 
     const child = spawn('claude', args, {
       cwd: PROJECT_ROOT,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, PATH: CLAUDE_SPAWN_PATH },
+      // MCP_TOOL_TIMEOUT: a browser tool call that hangs (e.g. a click swallowed by an ad overlay)
+      // errors out after 90s so the agent can try another approach, instead of stalling until
+      // the whole run is killed by the overall timeout.
+      env: { ...process.env, PATH: CLAUDE_SPAWN_PATH, MCP_TOOL_TIMEOUT: process.env.MCP_TOOL_TIMEOUT || '90000' },
     });
     let buffer = '';
     let stderr = '';
@@ -306,7 +320,7 @@ Why these matter:
 - For ACTION BUTTONS picked by position: a button picked by position within a row often TOGGLES meaning based on that item's current state (e.g. "Block" becomes "Unblock" once already blocked) - picking it by position performs the WRONG action depending on live state.
 - For VACUOUS ASSERTIONS: a fallback like "if (couldn't find it) { expect(true).toBe(true) }" reports PASSING even when the scenario never happened at all - this is worse than a failing test, since it hides real breakage behind a green checkmark.
 
-Fix ONLY the flagged issue(s) above - do not change the test's overall intent or anything not required to fix them.`;
+Fix ONLY the flagged issue(s) above - do not change the test's overall intent or anything not required to fix them.` + SUMMARY_JSON_INSTRUCTION;
 
   const result = await runClaudeStreaming(fixPrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
   if (result.is_error) {
@@ -338,7 +352,7 @@ Fix ONLY the flagged issue(s) above - do not change the test's overall intent or
   try {
     // The healer's own turn ends in free text, not structured JSON - re-summarize the file
     // now that it's been edited so meta.steps/title/description stay in sync with the code.
-    const summary = await summarizeTestFile(outPath, onEvent);
+    const summary = await summarizeTestFile(outPath, result.result);
     return {
       code: fixedCode,
       steps: summary.steps,
@@ -364,26 +378,6 @@ function extractTokenUsage(result) {
     cacheRead: u.cache_read_input_tokens || 0,
     cacheCreation: u.cache_creation_input_tokens || 0,
   };
-}
-
-// Official Anthropic API list pricing (USD per token), independent of how this
-// CLI session is actually authenticated/billed (e.g. a Claude subscription).
-// This lets the UI show "what this would cost on metered API billing" so a
-// product built on top of this can price test-case generation predictably.
-// Cache write is priced at the 5-minute ephemeral rate (1.25x input).
-const API_PRICING_PER_TOKEN = {
-  opus: { input: 5 / 1e6, output: 25 / 1e6, cacheRead: 0.5 / 1e6, cacheWrite: 6.25 / 1e6 },
-  haiku: { input: 1 / 1e6, output: 5 / 1e6, cacheRead: 0.1 / 1e6, cacheWrite: 1.25 / 1e6 },
-};
-
-function computeApiCostUsd(tokens) {
-  const rates = API_PRICING_PER_TOKEN[CLAUDE_MODEL] || API_PRICING_PER_TOKEN.opus;
-  return (
-    tokens.input * rates.input +
-    tokens.output * rates.output +
-    tokens.cacheRead * rates.cacheRead +
-    tokens.cacheCreation * rates.cacheWrite
-  );
 }
 
 function totalTokenCount(tokens) {
@@ -422,34 +416,110 @@ function mergeTokens(a, b) {
   };
 }
 
-// Small, cheap follow-up call (deliberately NOT run through --agent) that reads an
-// already-written test file and extracts {title, description, steps} as schema-constrained
-// JSON. Needed because the official Playwright Test Agents (generator/healer, run via
-// --agent) end their own turn with a free-text summary, not structured output - forcing a
-// --json-schema onto one of those calls has been observed to make the model skip its real
-// tool-driven work and just improvise a text answer instead. This call does no browser work
-// and doesn't modify the file - it only reads and summarizes what's already there.
-async function summarizeTestFile(outPath, onEvent) {
-  const code = await fs.readFile(outPath, 'utf-8');
-  const prompt = `You are extracting a structured summary of an existing Playwright test file for a QA automation product. Do not modify the file - only read and summarize it.
+// Appended to every generator/healer task so the agent reports its own title/description/steps
+// at the end of the session it is already in - far cheaper than starting a second `claude -p`
+// session (which re-caches the whole system prompt) just to summarize the file.
+const SUMMARY_JSON_INSTRUCTION = `
 
-File contents (absolute path: ${outPath}):
-${code}
+When you are completely done, end your final reply with exactly one fenced json block describing the FINAL test file: {"title": "<specific sentence-fragment naming the exact scenario and outcome>", "description": "<1-3 plain-English sentences: what it covers and what it proves>", "steps": [{"text": "<one short plain-English sentence>", "type": "action"}]} - one entry per real action or assertion in the file, in order, with type "action" or "assertion".`;
 
-Respond with ONLY the structured JSON result: a "title" for this test case (a specific, descriptive sentence-fragment naming the exact scenario and outcome, not generic), a "description" (1-3 plain-English sentences explaining what this test covers, what user-facing behavior it exercises, and what it proves when it passes), and its ordered "steps" - every real action/assertion in the file restated as one short plain-English sentence, each with a "type" of "action" or "assertion".`;
-
-  const result = await runClaudeStreaming(prompt, TEST_CASE_RESULT_SCHEMA, onEvent);
-  if (result.is_error || !result.structured_output) {
-    const err = new Error(result.result || 'Could not summarize the test file');
-    err.detail = result.result;
-    throw err;
+function parseSummaryBlock(text) {
+  const blocks = [...String(text || '').matchAll(/```json\s*([\s\S]*?)```/g)];
+  for (const m of blocks.reverse()) {
+    try {
+      const j = JSON.parse(m[1]);
+      if (typeof j.title === 'string' && j.title && Array.isArray(j.steps) && j.steps.length && j.steps.every((st) => typeof st.text === 'string' && (st.type === 'action' || st.type === 'assertion'))) {
+        return { title: j.title, description: typeof j.description === 'string' ? j.description : '', steps: j.steps.map((st) => ({ text: st.text, type: st.type })) };
+      }
+    } catch {
+      // not valid JSON - try the next block
+    }
   }
-  return {
-    title: result.structured_output.title,
-    description: result.structured_output.description,
-    steps: result.structured_output.steps,
-    usage: { costUsd: result.total_cost_usd, durationMs: result.duration_ms, tokens: extractTokenUsage(result) },
-  };
+  return null;
+}
+
+// Fallback when the agent didn't report a usable summary (or the file changed after it did):
+// build title/steps from the spec itself - the generator writes a comment before every step.
+function deterministicSummary(code) {
+  const title = (/\btest\s*\(\s*(['"`])(.+?)\1/.exec(code) || [])[2] || 'Generated test';
+  const steps = [];
+  for (const line of code.split('\n')) {
+    const c = /^\s*\/\/\s*(.+?)\s*$/.exec(line);
+    if (!c || /^(spec|seed|intent)\s*:/i.test(c[1])) continue;
+    steps.push({ text: c[1].replace(/^\d+[.)]\s*/, ''), type: /^(verify|check|assert|confirm|expect)/i.test(c[1]) ? 'assertion' : 'action' });
+  }
+  if (!steps.length) steps.push({ text: 'Run the generated Playwright test', type: 'action' });
+  return { title, description: `Automated Playwright test: ${title}.`, steps };
+}
+
+// No AI call: uses the summary the agent reported (agentText) when it is valid, else derives one
+// from the code. Returns the same shape the old AI-based summarizer did.
+async function summarizeTestFile(outPath, agentText = '') {
+  const code = await fs.readFile(outPath, 'utf-8');
+  const summary = parseSummaryBlock(agentText) || deterministicSummary(code);
+  return { ...summary, usage: { costUsd: 0, durationMs: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 } } };
+}
+
+// Keeps a generated test to MAX_ASSERTIONS `expect` calls by dropping the EARLIEST single-line
+// ones (and their "// Verify ..." comment): intermediate "did that action work" checks come first,
+// the final outcome the test exists to prove comes last. A backstop for the prompt rule in
+// .claude/agents/playwright-test-generator.md; removing an assertion can't break the test's flow.
+async function trimAssertions(outPath, max = MAX_ASSERTIONS) {
+  const lines = (await fs.readFile(outPath, 'utf-8')).split('\n');
+  const total = lines.filter((l) => /\bexpect\(/.test(l) && !/^\s*\/\//.test(l)).length;
+  if (total <= max) return false;
+  const drop = new Set();
+  let toRemove = total - max;
+  for (let i = 0; i < lines.length && toRemove > 0; i++) {
+    if (!/^\s*await expect\(.*\)\.\w+\(.*\);\s*$/.test(lines[i])) continue;
+    drop.add(i);
+    toRemove--;
+    if (i > 0 && /^\s*\/\/\s*(verify|check|assert|confirm|expect)/i.test(lines[i - 1])) drop.add(i - 1);
+  }
+  if (!drop.size) return false;
+  await fs.writeFile(outPath, lines.filter((_, i) => !drop.has(i)).join('\n'), 'utf-8');
+  console.log(`[assertion-cap] ${path.relative(PROJECT_ROOT, outPath)}: ${total} assertions -> ${total - (total - max - toRemove)} (limit ${max})`);
+  return true;
+}
+
+// Free pre-flight: `playwright test --list` parses/compiles the spec without launching a browser,
+// so a syntax or import error is caught here for $0 instead of costing a full run plus a heal.
+function checkSpecCompiles(relFile) {
+  return new Promise((resolve) => {
+    execFile(
+      'npx',
+      ['playwright', 'test', '--list', relFile],
+      { cwd: PROJECT_ROOT, timeout: 60 * 1000, env: { ...process.env, PATH: CLAUDE_SPAWN_PATH } },
+      (error, stdout, stderr) => resolve({ ok: !error, output: (stdout + (stderr ? `\n${stderr}` : '')).slice(-3000) })
+    );
+  });
+}
+
+// One cheap repair for a compile error: a tool-less, MCP-less Haiku call that gets just the file
+// and the error and returns the whole corrected file (the server writes it). Reverts if it still
+// doesn't compile, so it can never leave the file worse than it found it.
+async function repairSpecCheaply(outPath, errorOutput, onEvent) {
+  const original = await fs.readFile(outPath, 'utf-8');
+  const prompt = `This Playwright test file fails to compile/parse. Fix ONLY the syntax/import/type error(s) shown - do not change the test's behavior, locators or assertions.
+
+Error output:
+${errorOutput}
+
+File:
+\`\`\`ts
+${original}
+\`\`\`
+
+Reply with ONLY the complete corrected file in one \`\`\`ts code block.`;
+  const result = await runClaudeStreaming(prompt, null, onEvent, 2 * 60 * 1000, null, { slim: true, maxBudgetUsd: 0.05 });
+  const usage = { costUsd: result.total_cost_usd || 0, durationMs: result.duration_ms || 0, tokens: extractTokenUsage(result) };
+  const m = !result.is_error && /```(?:ts|typescript)?\n([\s\S]*?)```/.exec(result.result || '');
+  if (!m || !/\bimport\b/.test(m[1]) || !/\btest\b/.test(m[1])) return usage;
+  await fs.writeFile(outPath, m[1], 'utf-8');
+  const recheck = await checkSpecCompiles(path.relative(PROJECT_ROOT, outPath));
+  if (!recheck.ok) await fs.writeFile(outPath, original, 'utf-8');
+  console.log(`[syntax-gate] ${path.relative(PROJECT_ROOT, outPath)}: cheap repair ${recheck.ok ? 'fixed it' : 'did not fix it (reverted)'}`);
+  return usage;
 }
 
 // Persists a fresh, fully-resolved step list against a test case, alongside whatever code
@@ -468,7 +538,7 @@ async function syncMetaSteps(meta, code, rawSteps, usage = {}, title, descriptio
     tokens: usage.tokens ? mergeTokens(meta.tokens, usage.tokens) : meta.tokens,
   };
   updatedMeta.totalTokens = totalTokenCount(updatedMeta.tokens);
-  updatedMeta.apiCostUsd = computeApiCostUsd(updatedMeta.tokens);
+  updatedMeta.apiCostUsd = updatedMeta.costUsd;
   await fs.writeFile(path.join(GENERATED_DIR, `${meta.id}.meta.json`), JSON.stringify(updatedMeta, null, 2), 'utf-8');
   return { ...updatedMeta, code };
 }
@@ -517,7 +587,7 @@ ${context ? `Context (credentials, session/OTP info, test data - use only what's
   let code;
   for (let attempt = 1; attempt <= 2; attempt++) {
     result = await runClaudeStreaming(
-      attempt === 1 ? claudePrompt : claudePrompt + retryDirective,
+      (attempt === 1 ? claudePrompt : claudePrompt + retryDirective) + SUMMARY_JSON_INSTRUCTION,
       null,
       onEvent,
       CLAUDE_TIMEOUT_MS,
@@ -549,8 +619,11 @@ ${context ? `Context (credentials, session/OTP info, test data - use only what's
 
   // The agent's own turn ends in free text, not structured JSON - a small separate
   // (non-agent) call extracts title/description/steps from the file it just wrote.
-  send({ type: 'progress', message: 'Summarizing the generated test...' });
-  const summary = await summarizeTestFile(outPath, onEvent);
+  // Cap assertions, then take the summary the agent reported (no extra AI call); if we trimmed the
+  // file, that summary is stale, so derive it from the trimmed code instead.
+  const trimmed = await trimAssertions(outPath);
+  if (trimmed) code = await fs.readFile(outPath, 'utf-8');
+  const summary = await summarizeTestFile(outPath, trimmed ? '' : result.result);
   let finalTitle = summary.title || title || prompt;
   let finalDescription = summary.description || '';
   let rawSteps = summary.steps;
@@ -574,6 +647,17 @@ ${context ? `Context (credentials, session/OTP info, test data - use only what's
   // Run it once. If it fails, heal it right then (one attempt) and re-run to confirm -
   // the whole generate -> run -> heal-if-needed lifecycle happens here, so the caller gets
   // back a test that's already been made to work, not one that still needs a manual step.
+  // Free syntax gate: catch compile errors before paying for a browser run + full heal.
+  const gate = await checkSpecCompiles(relOutPath);
+  if (!gate.ok) {
+    send({ type: 'progress', message: 'Syntax check failed - applying a quick fix...' });
+    const repair = await repairSpecCheaply(outPath, gate.output, onEvent);
+    tokens = mergeTokens(tokens, repair.tokens);
+    costUsd += repair.costUsd;
+    durationMs += repair.durationMs;
+    code = await fs.readFile(outPath, 'utf-8');
+  }
+
   send({ type: 'progress', message: 'Verifying the generated test actually passes...' });
   let verifyRun = await runPlaywrightTest(relOutPath);
   let verified = verifyRun.passed;
@@ -602,7 +686,7 @@ ${context ? `Context (credentials, session/OTP info, test data - use only what's
         durationMs += healRowFix.usage.durationMs;
       } else {
         try {
-          const healedSummary = await summarizeTestFile(outPath, onEvent);
+          const healedSummary = await summarizeTestFile(outPath, healSummary);
           rawSteps = healedSummary.steps;
           finalTitle = healedSummary.title || finalTitle;
           finalDescription = healedSummary.description || finalDescription;
@@ -644,7 +728,7 @@ ${context ? `Context (credentials, session/OTP info, test data - use only what's
     durationMs,
     tokens,
     totalTokens: totalTokenCount(tokens),
-    apiCostUsd: computeApiCostUsd(tokens),
+    apiCostUsd: costUsd,
     createdAt: new Date().toISOString(),
     verified,
     // True when the final run didn't fail but also didn't really pass - e.g. the healer
@@ -1315,7 +1399,7 @@ Failing test file (absolute path): ${resolvedTestPath}
 Failure output from the last run:
 ${lastFailureOutput}
 
-Do NOT change the test's overall intent or add fundamentally new steps/flow logic - fix only what's actually broken (locators, waits, assertions). If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - leave the file as it is and explain why in your final summary instead.`;
+Do NOT change the test's overall intent or add fundamentally new steps/flow logic - fix only what's actually broken (locators, waits, assertions). If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - leave the file as it is and explain why in your final summary instead.` + SUMMARY_JSON_INSTRUCTION;
 
   try {
     const result = await runClaudeStreaming(claudePrompt, null, onEvent, CLAUDE_TIMEOUT_MS, 'playwright-test-healer');
@@ -1428,7 +1512,7 @@ app.post('/api/run-adaptive', async (req, res) => {
       if (meta) {
         try {
           const healedCode = await fs.readFile(resolvedPath, 'utf-8');
-          const summary = await summarizeTestFile(resolvedPath, onEvent);
+          const summary = await summarizeTestFile(resolvedPath, healerAttempt.summary);
           rungs.healer.item = await syncMetaSteps(
             meta,
             healedCode,
