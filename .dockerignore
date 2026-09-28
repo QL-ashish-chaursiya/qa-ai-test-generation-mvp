@@ -1,0 +1,11 @@
+node_modules
+.git
+tests/generated
+test-results
+playwright-report
+.playwright-json-reports
+.playwright-mcp
+.uploads
+.auth-seeds
+*.png
+npm-debug.log

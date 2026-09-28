@@ -1,0 +1,101 @@
+- generic [ref=e48]:
+  - generic [ref=e49]:
+    - img "ImagineOnboard" [ref=e51]
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]: Workspace
+        - generic [ref=e56] [cursor=pointer]:
+          - img "appstore" [ref=e58]
+          - generic [ref=e61]: Dashboard
+        - generic [ref=e63] [cursor=pointer]:
+          - img "usergroup-add" [ref=e65]
+          - generic [ref=e68]: Organizations
+        - generic [ref=e70] [cursor=pointer]:
+          - img "usergroup-add" [ref=e72]
+          - generic [ref=e75]: Projects
+          - generic [ref=e76]: "2"
+        - generic [ref=e78] [cursor=pointer]:
+          - img "check-square" [ref=e80]
+          - generic [ref=e84]: Tasks
+          - generic [ref=e85]: "10"
+        - generic [ref=e87] [cursor=pointer]:
+          - img "safety" [ref=e89]
+          - generic [ref=e93]: Approvals
+          - generic [ref=e94]: "1"
+      - generic [ref=e95]:
+        - generic [ref=e96]: Configure
+        - generic [ref=e98] [cursor=pointer]:
+          - img "user" [ref=e100]
+          - generic [ref=e103]: Manage Staff and Permissions
+        - generic [ref=e105] [cursor=pointer]:
+          - img "file-text" [ref=e107]
+          - generic [ref=e110]: Templates
+        - generic [ref=e112] [cursor=pointer]:
+          - img "tags" [ref=e114]
+          - generic [ref=e117]: Products
+        - generic [ref=e119] [cursor=pointer]:
+          - img "key" [ref=e121]
+          - generic [ref=e124]: API Keys
+    - generic [ref=e125] [cursor=pointer]:
+      - generic [ref=e126]: BG
+      - generic [ref=e127]:
+        - generic [ref=e128]: Break Glass Admin
+        - generic [ref=e129]: Administrator
+  - generic [ref=e130]:
+    - generic [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e133]: Operations
+        - img "right" [ref=e134]
+        - generic [ref=e137]: Project Detail
+      - generic [ref=e138]:
+        - button [ref=e139] [cursor=pointer]:
+          - img "bell" [ref=e141]
+        - superscript [ref=e144]:
+          - generic [ref=e145]: "6"
+    - main [ref=e147]:
+      - generic [ref=e1275]:
+        - generic [ref=e1276]:
+          - button "arrow-left Back to Projects" [ref=e1277] [cursor=pointer]:
+            - img "arrow-left" [ref=e1279]
+            - generic [ref=e1282]: Back to Projects
+          - heading "New Project" [level=1] [ref=e1283]
+          - paragraph [ref=e1284]: Commission a new product/engagement for an organization
+        - generic [ref=e1285]:
+          - generic [ref=e1287]:
+            - generic "Organization" [ref=e1289]: "* Organization"
+            - generic [ref=e1295]:
+              - combobox "* Organization" [ref=e1297]
+              - generic: Select organization
+          - generic [ref=e1299]:
+            - generic "Product" [ref=e1301]:
+              - text: Product
+              - img "question-circle" [ref=e1302]
+            - generic [ref=e1311]:
+              - combobox "Product question-circle" [ref=e1313]
+              - generic: All products
+          - generic [ref=e1315]:
+            - generic "Template" [ref=e1317]
+            - generic [ref=e1323]:
+              - combobox "Template" [disabled] [ref=e1325]
+              - generic: Select organization first
+          - generic [ref=e1327]:
+            - generic "Project Name" [ref=e1329]:
+              - text: "* Project Name"
+              - img "question-circle" [ref=e1330]
+            - textbox "* Project Name question-circle" [ref=e1337]:
+              - /placeholder: e.g. Riverside Clinic — Client Onboarding
+          - generic [ref=e1339]:
+            - generic "Project Manager" [ref=e1341]
+            - generic [ref=e1347]:
+              - combobox "Project Manager" [ref=e1349]
+              - generic: Select manager
+          - generic [ref=e1351]:
+            - generic "Target Go-Live Date" [ref=e1353]
+            - generic [ref=e1358]:
+              - textbox "Target Go-Live Date" [ref=e1359]:
+                - /placeholder: Select date
+              - generic:
+                - img "calendar"
+          - generic [ref=e1365]:
+            - button "Create Project" [ref=e1367] [cursor=pointer]
+            - button "Cancel" [ref=e1370] [cursor=pointer]

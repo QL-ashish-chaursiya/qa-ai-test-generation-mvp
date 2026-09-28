@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ai-agent-qa
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # Set for real in the Render dashboard - never committed. Required because a remote
+      # server can't use the interactive `claude.ai` subscription login this app uses locally;
+      # see server/index.js's resolveClaudeSpawnPath comment for why the auth method matters.
+      - key: ANTHROPIC_API_KEY
+        sync: false

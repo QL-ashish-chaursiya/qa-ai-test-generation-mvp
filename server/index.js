@@ -12,11 +12,11 @@ const INTENT_MANIFESTS_DIR = path.join(PROJECT_ROOT, 'specs', 'intent-manifests'
 const TEST_RESULTS_DIR = path.join(PROJECT_ROOT, 'test-results');
 const JSON_REPORTS_DIR = path.join(PROJECT_ROOT, '.playwright-json-reports');
 const UPLOADS_DIR = path.join(PROJECT_ROOT, '.uploads');
-const CLAUDE_TIMEOUT_MS = 5 * 60 * 1000;
+const CLAUDE_TIMEOUT_MS = 10 * 60 * 1000;
 // Hard per-call spend caps (claude --max-budget-usd): a run that blows past its cap is stopped
 // instead of being allowed to run away.
-const AGENT_BUDGET_USD = { 'playwright-test-generator': 0.35, 'playwright-test-healer': 0.25, 'playwright-test-planner': 1.0 };
-const PLAIN_BUDGET_USD = 0.1;
+const AGENT_BUDGET_USD = { 'playwright-test-generator': 2.0, 'playwright-test-healer': 1.0, 'playwright-test-planner': 3.0 };
+const PLAIN_BUDGET_USD = 0.25;
 // Most assertions a generated test keeps; extras are trimmed deterministically (see trimAssertions).
 const MAX_ASSERTIONS = 5;
 // Site scans drive a much longer-running agent session (crawling several pages, planning,
@@ -116,8 +116,17 @@ function runClaudeStreaming(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIME
 // summary, not schema-constrained JSON; forcing a schema on top of that has been observed to
 // make the model skip its real tool-driven work and just improvise a text answer instead.
 function runClaudeStreamingNow(prompt, jsonSchema, onEvent, timeoutMs = CLAUDE_TIMEOUT_MS, agent = null, opts = {}) {
+  // Test output can contain raw binary (e.g. a PDF dumped into an assertion message); NUL bytes make
+  // spawn() reject the whole argument list, so strip NULs/control characters from every prompt.
+  prompt = String(prompt).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
   return new Promise((resolve, reject) => {
     const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'bypassPermissions'];
+    // --bare skips keychain reads among other interactive-only behavior, but it also *forces*
+    // ANTHROPIC_API_KEY/apiKeyHelper auth and disables OAuth entirely - fine (required, even) on
+    // a headless server with no keychain daemon and an API key, but it would break local dev,
+    // which authenticates via the `claude.ai` subscription login instead. Only add it when an API
+    // key is actually configured, so local OAuth usage is untouched.
+    if (process.env.ANTHROPIC_API_KEY) args.push('--bare');
     // Never force --model on an agent run: each agent declares its own `model:` in its
     // .claude/agents/*.md frontmatter (generator/healer/planner all use sonnet), and a
     // smaller forced model has been observed to make the agent skip its real tool-driven
@@ -1397,7 +1406,7 @@ async function runHealer(resolvedTestPath, relFile, lastFailureOutput, onEvent =
 Failing test file (absolute path): ${resolvedTestPath}
 
 Failure output from the last run:
-${lastFailureOutput}
+${String(lastFailureOutput).slice(-6000)}
 
 Do NOT change the test's overall intent or add fundamentally new steps/flow logic - fix only what's actually broken (locators, waits, assertions). If the real problem is that the flow itself no longer matches this page (not just a broken selector/timing issue), do not force a fix - leave the file as it is and explain why in your final summary instead.` + SUMMARY_JSON_INSTRUCTION;
 
